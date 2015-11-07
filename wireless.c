@@ -104,6 +104,7 @@ scan(char *ifname, struct ieee80211_nodereq *nr, int nrlen) {
 	struct ieee80211_nodereq_all na;
 	struct ifreq ifr;
 	int s;
+	pid_t child;
 
 	assert(nrlen > 0);
 
@@ -111,7 +112,16 @@ scan(char *ifname, struct ieee80211_nodereq *nr, int nrlen) {
 	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 		err(1, "socket");
 
-	/* TODO: Make sure interface is up */
+	switch ((child = fork())) {
+		case -1:
+			err(1, "fork");
+		case 0:
+			execlp("ifconfig", "ifconfig", ifname, "up", NULL);
+			err(1, "execlp");
+		default:
+			waitpid(child, NULL, 0);
+	}
+
 
 	memset(&ifr, 0x00, sizeof(ifr));
 	(void) strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));

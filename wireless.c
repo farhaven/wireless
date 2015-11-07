@@ -230,12 +230,7 @@ main(void) {
 	memset(nr, 0x00, ARRAY_SIZE(nr));
 	numnodes = scan(cnf->device, nr, ARRAY_SIZE(nr));
 
-	if (numnodes == 0) {
-		fprintf(stderr, "%llu: no networks found\n", time(NULL));
-	} else {
-		struct network *nw = select_network(cnf, nr, numnodes);
-		configure_network(cnf, nw);
-	}
+	configure_network(cnf, select_network(cnf, nr, numnodes));
 
 	/* Write out /tmp/nw-aps */
 	if ((fh = fopen("/tmp/nw-aps", "w")) == NULL)

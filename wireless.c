@@ -9,6 +9,7 @@
 
 #include <sys/queue.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
 
 #include <sys/socket.h>
 #include <net/if.h>
@@ -25,29 +26,43 @@ struct network {
 	const char *nwid;
 	const char *setup;
 	char bssid[IEEE80211_ADDR_LEN];
+	enum {
+		NW_UNKNOWN,
+		NW_OPEN,
+		NW_WPA2,
+		NW_8021X
+	} type;
+	char *wpakey;
 };
 
 struct config {
 	TAILQ_HEAD(, network) networks;
+	char *device;
 };
 
 struct config *
-init_config() {
+make_config() {
 	struct config *cnf = calloc(1, sizeof(*cnf));
+
+	cnf->device = strdup(DEVICE);
 
 	struct network *nw;
 	TAILQ_INIT(&cnf->networks);
 
 	nw = calloc(1, sizeof(*nw));
 	nw->nwid = strdup("foobar");
+	nw->type = NW_OPEN;
 	TAILQ_INSERT_TAIL(&cnf->networks, nw, networks);
 
 	nw = calloc(1, sizeof(*nw));
 	nw->nwid = strdup("c3pb");
+	nw->type = NW_WPA2;
+	nw->wpakey = strdup("chaoschaos");
 	TAILQ_INSERT_TAIL(&cnf->networks, nw, networks);
 
 	nw = calloc(1, sizeof(*nw));
 	nw->nwid = strdup("bier");
+	nw->type = NW_OPEN;
 	TAILQ_INSERT_TAIL(&cnf->networks, nw, networks);
 
 	return cnf;
@@ -82,7 +97,7 @@ rssicmp(const void *a, const void *b) {
 }
 
 int
-scan(const char *ifname, struct ieee80211_nodereq *nr, int nrlen) {
+scan(char *ifname, struct ieee80211_nodereq *nr, int nrlen) {
 	struct ieee80211_nodereq_all na;
 	struct ifreq ifr;
 	int s;
@@ -120,6 +135,58 @@ scan(const char *ifname, struct ieee80211_nodereq *nr, int nrlen) {
 	return na.na_nodes;
 }
 
+void
+configure_network(struct config *cnf, struct network *nw) {
+	pid_t child;
+
+	fprintf(stderr, "%llu: configuration %p\n", time(NULL), (void*) nw);
+
+	if (!nw) {
+		return;
+	}
+
+	fprintf(stderr, "%llu: configuring network with nwid %s\n", time(NULL), nw ? nw->nwid: "(none)");
+
+	/* clear wireless settings */
+	switch ((child = fork())) {
+		case -1:
+			err(1, "fork");
+		case 0:
+			/* inside child */
+			execlp("ifconfig", "ifconfig", cnf->device, "-wpa", "-wpakey", "-nwid", "-bssid", "-chan", NULL);
+			err(1, "execlp");
+		default:
+			/* parent */
+			waitpid(child, NULL, 0);
+	}
+
+	/* three options: open wifi, wpa/wpa2 or 802.1X */
+	if ((child = fork()) == -1)
+		err(1, "fork");
+
+	if (child != 0) {
+		waitpid(child, NULL, 0);
+		return;
+	}
+
+	switch (nw->type) {
+		case NW_OPEN:
+			fprintf(stderr, "%llu: configuring nwid %s for open access\n", time(NULL), nw->nwid);
+			execlp("ifconfig", "ifconfig", cnf->device, "nwid", nw->nwid, NULL);
+			err(1, "execlp");
+		case NW_WPA2:
+			fprintf(stderr, "%llu: configuring nwid %s for wpa2 (key: %s)\n", time(NULL), nw->nwid, nw->wpakey);
+			execlp("ifconfig", "ifconfig", cnf->device, "nwid", nw->nwid, "wpa", "wpakey", nw->wpakey, NULL);
+			err(1, "execlp");
+		case NW_8021X:
+			fprintf(stderr, "%llu: configuring nwid %s for 802.1X\n", time(NULL), nw->nwid);
+			execlp("ifconfig", "ifconfig", cnf->device, "nwid", nw->nwid, "wpa", "wpaakms", "802.1x", NULL);
+			err(1, "execlp");
+		default:
+			errx(1, "unknown network type :(");
+	}
+}
+
 int
 main(void) {
 	struct config *cnf;
@@ -127,19 +194,12 @@ main(void) {
 	char temp[IEEE80211_NWID_LEN + 1];
 	int numnodes, i, len;
 
-	cnf = init_config();
+	cnf = make_config();
 	temp[IEEE80211_NWID_LEN] = 0x00;
-	fprintf(stderr, "%llu: device=" DEVICE "\n", time(NULL));
+	fprintf(stderr, "%llu: device=%s\n", time(NULL), cnf->device);
 
 	memset(nr, 0x00, ARRAY_SIZE(nr));
-	numnodes = scan(DEVICE, nr, ARRAY_SIZE(nr));
-
-	if (numnodes == 0) {
-		fprintf(stderr, "%llu: no networks found\n", time(NULL));
-	} else {
-		struct network *nw = select_network(cnf, nr, numnodes);
-		fprintf(stderr, "%llu: configuration %p\n", time(NULL), (void*) nw);
-	}
+	numnodes = scan(cnf->device, nr, ARRAY_SIZE(nr));
 
 	fprintf(stderr, "%llu: got %d scan results\n", time(NULL), numnodes);
 	for (i = 0; i < numnodes; i++) {
@@ -149,6 +209,13 @@ main(void) {
 		memcpy(temp, nr[i].nr_nwid, len);
 		temp[len] = 0x00;
 		fprintf(stderr, "%llu: nwid=\"%s\"\trssi=%d\n", time(NULL), temp, nr[i].nr_rssi);
+	}
+
+	if (numnodes == 0) {
+		fprintf(stderr, "%llu: no networks found\n", time(NULL));
+	} else {
+		struct network *nw = select_network(cnf, nr, numnodes);
+		configure_network(cnf, nw);
 	}
 
 	return 0;

@@ -26,8 +26,7 @@
 
 struct network {
 	TAILQ_ENTRY(network) networks;
-	const char *nwid;
-	const char *setup;
+	char *nwid;
 	char bssid[IEEE80211_ADDR_LEN];
 	enum {
 		NW_UNKNOWN,

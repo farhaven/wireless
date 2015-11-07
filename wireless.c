@@ -99,7 +99,7 @@ rssicmp(const void *a, const void *b) {
 }
 
 int
-scan(char *ifname, struct ieee80211_nodereq *nr, int nrlen) {
+scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 	struct ieee80211_nodereq_all na;
 	struct ifreq ifr;
 	int s;
@@ -115,7 +115,7 @@ scan(char *ifname, struct ieee80211_nodereq *nr, int nrlen) {
 		case -1:
 			err(1, "fork");
 		case 0:
-			execlp("ifconfig", "ifconfig", ifname, "up", NULL);
+			execlp("ifconfig", "ifconfig", cnf->device, "up", NULL);
 			err(1, "execlp");
 		default:
 			waitpid(child, NULL, 0);
@@ -123,7 +123,7 @@ scan(char *ifname, struct ieee80211_nodereq *nr, int nrlen) {
 
 
 	memset(&ifr, 0x00, sizeof(ifr));
-	(void) strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+	(void) strlcpy(ifr.ifr_name, cnf->device, sizeof(ifr.ifr_name));
 
 	if (ioctl(s, SIOCS80211SCAN, &ifr) != 0)
 		err(1, "ioctl");
@@ -132,7 +132,7 @@ scan(char *ifname, struct ieee80211_nodereq *nr, int nrlen) {
 	memset(nr, 0x00, sizeof(nr) * nrlen);
 	na.na_node = nr;
 	na.na_size = nrlen * sizeof(*nr);
-	(void) strlcpy(na.na_ifname, ifname, sizeof(na.na_ifname));
+	(void) strlcpy(na.na_ifname, cnf->device, sizeof(na.na_ifname));
 
 	if (ioctl(s, SIOCG80211ALLNODES, &na) != 0)
 		err(1, "ioctl");
@@ -228,7 +228,7 @@ main(void) {
 	fprintf(stderr, "%llu: device=%s\n", time(NULL), cnf->device);
 
 	memset(nr, 0x00, ARRAY_SIZE(nr));
-	numnodes = scan(cnf->device, nr, ARRAY_SIZE(nr));
+	numnodes = scan(cnf, nr, ARRAY_SIZE(nr));
 
 	configure_network(cnf, select_network(cnf, nr, numnodes));
 

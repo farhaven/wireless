@@ -150,14 +150,15 @@ scan(char *ifname, struct ieee80211_nodereq *nr, int nrlen) {
 void
 configure_network(struct config *cnf, struct network *nw) {
 	pid_t child;
+	struct ether_addr ea;
+	char *bssid;
+	char *params[10]; /* Maximum number of ifconfig parameters */
 
 	fprintf(stderr, "%llu: configuration %p\n", time(NULL), (void*) nw);
 
 	if (!nw) {
 		return;
 	}
-
-	fprintf(stderr, "%llu: configuring network with nwid %s\n", time(NULL), nw ? nw->nwid: "(none)");
 
 	/* clear wireless settings */
 	switch ((child = fork())) {
@@ -172,7 +173,6 @@ configure_network(struct config *cnf, struct network *nw) {
 			waitpid(child, NULL, 0);
 	}
 
-	/* three options: open wifi, wpa/wpa2 or 802.1X */
 	if ((child = fork()) == -1)
 		err(1, "fork");
 
@@ -181,22 +181,40 @@ configure_network(struct config *cnf, struct network *nw) {
 		return;
 	}
 
+	memcpy(&ea.ether_addr_octet, nw->bssid, sizeof(ea.ether_addr_octet));
+	bssid = ether_ntoa(&ea);
+
+	/* Common parameters for all configuration options */
+	params[0] = "ifconfig";
+	params[1] = cnf->device;
+	params[2] = "nwid";
+	params[3] = nw->nwid;
+	params[4] = "bssid";
+	params[5] = bssid;
+
+	/* three options: open wifi, wpa/wpa2 or 802.1X */
 	switch (nw->type) {
 		case NW_OPEN:
-			fprintf(stderr, "%llu: configuring nwid %s for open access\n", time(NULL), nw->nwid);
-			execlp("ifconfig", "ifconfig", cnf->device, "nwid", nw->nwid, NULL);
-			err(1, "execlp");
+			params[6] = NULL;
+			break;
 		case NW_WPA2:
-			fprintf(stderr, "%llu: configuring nwid %s for wpa2 (key: %s)\n", time(NULL), nw->nwid, nw->wpakey);
-			execlp("ifconfig", "ifconfig", cnf->device, "nwid", nw->nwid, "wpa", "wpakey", nw->wpakey, NULL);
-			err(1, "execlp");
 		case NW_8021X:
-			fprintf(stderr, "%llu: configuring nwid %s for 802.1X\n", time(NULL), nw->nwid);
-			execlp("ifconfig", "ifconfig", cnf->device, "nwid", nw->nwid, "wpa", "wpaakms", "802.1x", NULL);
-			err(1, "execlp");
+			params[6] = "wpa";
+			if (nw->type == NW_WPA2) {
+				params[7] = "wpakey";
+				params[8] = nw->wpakey;
+			} else {
+				params[7] = "wpaakms";
+				params[8] = "802.1x";
+			}
+			params[9] = NULL;
+			break;
 		default:
 			errx(1, "unknown network type :(");
 	}
+
+	execv("/sbin/ifconfig", params);
+	err(1, "execv");
 }
 
 int

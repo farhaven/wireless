@@ -11,8 +11,11 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/if_ether.h>
 
 #include <net80211/ieee80211.h>
 #include <net80211/ieee80211_ioctl.h>
@@ -191,25 +194,14 @@ int
 main(void) {
 	struct config *cnf;
 	struct ieee80211_nodereq nr[SCANSZ];
-	char temp[IEEE80211_NWID_LEN + 1];
-	int numnodes, i, len;
+	int numnodes, i;
+	FILE *fh;
 
 	cnf = make_config();
-	temp[IEEE80211_NWID_LEN] = 0x00;
 	fprintf(stderr, "%llu: device=%s\n", time(NULL), cnf->device);
 
 	memset(nr, 0x00, ARRAY_SIZE(nr));
 	numnodes = scan(cnf->device, nr, ARRAY_SIZE(nr));
-
-	fprintf(stderr, "%llu: got %d scan results\n", time(NULL), numnodes);
-	for (i = 0; i < numnodes; i++) {
-		len = nr[i].nr_nwid_len;
-		if (len > IEEE80211_NWID_LEN)
-			len = IEEE80211_NWID_LEN;
-		memcpy(temp, nr[i].nr_nwid, len);
-		temp[len] = 0x00;
-		fprintf(stderr, "%llu: nwid=\"%s\"\trssi=%d\n", time(NULL), temp, nr[i].nr_rssi);
-	}
 
 	if (numnodes == 0) {
 		fprintf(stderr, "%llu: no networks found\n", time(NULL));
@@ -217,6 +209,32 @@ main(void) {
 		struct network *nw = select_network(cnf, nr, numnodes);
 		configure_network(cnf, nw);
 	}
+
+	/* Write out /tmp/nw-aps */
+	if ((fh = fopen("/tmp/nw-aps", "w")) == NULL)
+		err(1, "open");
+
+	for (i = 0; i < numnodes; i++) {
+		char nwid[IEEE80211_NWID_LEN + 1];
+		struct ether_addr ea;
+		int len, enc;
+
+		nwid[IEEE80211_NWID_LEN] = 0x00;
+		len = nr[i].nr_nwid_len;
+		if (len > IEEE80211_NWID_LEN)
+			len = IEEE80211_NWID_LEN;
+		memcpy(nwid, nr[i].nr_nwid, len);
+		nwid[len] = 0x00;
+
+		memcpy(&ea.ether_addr_octet, nr[i].nr_bssid, sizeof(ea.ether_addr_octet));
+
+		enc = nr[i].nr_capinfo & IEEE80211_CAPINFO_PRIVACY;
+
+		/* bssid signal strength enc? nwid */
+		fprintf(fh, "%s\t%d\t%s\t%s\n", ether_ntoa(&ea), nr[i].nr_rssi, enc? "enc": "", nwid);
+	}
+
+	fclose(fh);
 
 	return 0;
 }

@@ -1,0 +1,37 @@
+Wireless
+========
+This thing scans for and configures wireless networks on OpenBSD. It uses
+ifconfig to do most of the heavy lifting and basically just interprets scan
+results.
+
+Usage
+-----
+Just run it once to scan for known wireless LANs and configure the earliest
+network in the configuration file, for example:
+
+    $ wireless
+    ... wait a bit for scanning and configuration ...
+    $ dhclient iwn0
+
+Configuration
+-------------
+This is an example configuration file:
+
+    device iwn0
+    
+    open   freifunk.paderborn.net
+    802.1x eduroam
+    wpa    "home network" thisismypassword
+
+There are three kinds of networks, `open`, `wpa` and `802.1x`. All of these get
+an SSID as their first parameter. `wpa` gets the password as the second
+parameter. SSIDs and passwords which contain spaces can be enclosed in single or
+double quotes. If one of these is enclosed in single quotes, double quotes can
+be used inside without escaping and vice versa. Having double and single quotes
+inside one of these strings is currently not supported. Adding this requires
+tweaking the lexer code in `conflex.l`.
+
+The priority of a network depends on the order of networks in the configuration
+file. The earlier a network appears, the higher is its priority. If an SSID is
+visible multiple times (such as in campus networks), the access point with the
+strongest RSSI is chosen.

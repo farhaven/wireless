@@ -115,8 +115,8 @@ parse_config(char *filename) {
 	}
 
 	if ((file.stream = fopen(file.name, "r")) == NULL) {
+		warn("open %s", file.name);
 		free(file.name);
-		warn("fopen");
 		return NULL;
 	}
 

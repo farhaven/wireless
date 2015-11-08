@@ -13,6 +13,11 @@ network in the configuration file, for example:
     ... wait a bit for scanning and configuration ...
     $ dhclient iwn0
 
+The result of the scan is also written to the file `/tmp/nw-aps`. It contains
+one line for each access point with the following information:
+
+    BSSID RSSI encrypted? SSID
+
 Configuration
 -------------
 This is an example configuration file:

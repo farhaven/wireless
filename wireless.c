@@ -179,7 +179,6 @@ configure_network(struct config *cnf, struct network *nw) {
 int
 main(int argc, char **argv) {
 	struct config *cnf;
-	struct network *nw;
 	struct ieee80211_nodereq nr[SCANSZ];
 	int numnodes, i;
 	FILE *fh;
@@ -195,11 +194,6 @@ main(int argc, char **argv) {
 
 	if (!cnf->device) {
 		errx(1, "No device specified");
-	}
-
-	fprintf(stderr, "device=%s\n", cnf->device);
-	TAILQ_FOREACH(nw, &cnf->networks, networks) {
-		fprintf(stderr, "nwid: %s\n", nw->nwid);
 	}
 
 	memset(nr, 0x00, ARRAY_SIZE(nr));

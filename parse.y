@@ -46,8 +46,9 @@ device		: T_DEVICE T_STRING
 		{
 			if (strlen($2) > IFNAMSIZ) {
 				char *tmp;
-				asprintf(&tmp, "Device name '%s' too long (maximum: %d, is: %ld)",
-				         $2, IFNAMSIZ, strlen($2));
+				asprintf(&tmp,"Device name '%s' too long "
+				         "(maximum: %d, is: %ld)", $2, IFNAMSIZ,
+				         strlen($2));
 				yyerror(tmp);
 				free(tmp);
 				YYERROR;

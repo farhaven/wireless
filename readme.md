@@ -23,6 +23,7 @@ Configuration
 This is an example configuration file:
 
     device iwn0
+    verbose
     
     open   freifunk.paderborn.net
     802.1x eduroam
@@ -40,3 +41,6 @@ The priority of a network depends on the order of networks in the configuration
 file. The earlier a network appears, the higher is its priority. If an SSID is
 visible multiple times (such as in campus networks), the access point with the
 strongest RSSI is chosen.
+
+If the keyword `verbose` is given in the configuration file, the name of the
+network that is being configured will be printed to the standard error stream.

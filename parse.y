@@ -25,7 +25,7 @@ struct config *conf;
 %}
 
 %token	T_DEVICE
-%token	ERROR
+%token	ERROR T_VERBOSE
 %token	T_NET_OPEN T_NET_WPA T_NET_8021X
 %token	T_STRING
 
@@ -37,6 +37,7 @@ struct config *conf;
 /* Grammar */
 grammar	:
 		| grammar '\n'
+		| grammar verbose '\n'
 		| grammar network '\n'
 		| grammar device '\n'
 		| grammar error '\n' { file.errors++; }
@@ -78,6 +79,12 @@ wpa		: T_NET_WPA T_STRING T_STRING
 			struct network *nw = new_network(NW_WPA2, $2);
 			nw->wpakey = $3;
 			TAILQ_INSERT_TAIL(&conf->networks, nw, networks);
+		}
+		;
+
+verbose		: T_VERBOSE
+		{
+			conf->verbose = 1;
 		}
 		;
 %%

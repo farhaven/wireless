@@ -10,6 +10,7 @@ char *extract_string(char*);
 %}
 
 %%
+verbose		return T_VERBOSE;
 device		return T_DEVICE;
 open		return T_NET_OPEN;
 wpa		return T_NET_WPA;

@@ -168,6 +168,10 @@ configure_network(struct config *cnf, struct network *nw) {
 			errx(1, "unknown network type :(");
 	}
 
+	if (cnf->verbose) {
+		fprintf(stderr, "configuring wireless network %s\n", nw->nwid);
+	}
+
 	execv("/sbin/ifconfig", params);
 	err(1, "execv");
 }

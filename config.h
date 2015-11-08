@@ -20,6 +20,7 @@ struct network {
 struct config {
 	TAILQ_HEAD(, network) networks;
 	char *device;
+	int verbose;
 };
 
 typedef struct {

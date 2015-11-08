@@ -21,7 +21,6 @@
 #include <net80211/ieee80211_ioctl.h>
 
 #include "config.h"
-#include "y.tab.h"
 
 #define ARRAY_SIZE(x) ((sizeof(x)) / sizeof(*x))
 #define SCANSZ 512

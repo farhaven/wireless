@@ -1,9 +1,13 @@
 PROG=wireless
 MAN =
-SRCS=wireless.c
+SRCS=wireless.c parse.y conflex.l
 
 CFLAGS += -Wall -Werror -pedantic
 CFLAGS += -std=c99
-CFLAGS += -g
+CFLAGS += -g -O0
+CFLAGS += -DYY_NO_UNPUT
+
+LDADD += -lutil -lfl
+DPADD += ${LIBUTIL}
 
 .include <bsd.prog.mk>

@@ -20,55 +20,11 @@
 #include <net80211/ieee80211.h>
 #include <net80211/ieee80211_ioctl.h>
 
+#include "config.h"
+#include "y.tab.h"
+
 #define ARRAY_SIZE(x) ((sizeof(x)) / sizeof(*x))
-#define DEVICE "iwn0"
 #define SCANSZ 512
-
-struct network {
-	TAILQ_ENTRY(network) networks;
-	char *nwid;
-	char bssid[IEEE80211_ADDR_LEN];
-	enum {
-		NW_UNKNOWN,
-		NW_OPEN,
-		NW_WPA2,
-		NW_8021X
-	} type;
-	char *wpakey;
-};
-
-struct config {
-	TAILQ_HEAD(, network) networks;
-	char *device;
-};
-
-struct config *
-make_config() {
-	struct config *cnf = calloc(1, sizeof(*cnf));
-
-	cnf->device = strdup(DEVICE);
-
-	struct network *nw;
-	TAILQ_INIT(&cnf->networks);
-
-	nw = calloc(1, sizeof(*nw));
-	nw->nwid = strdup("foobar");
-	nw->type = NW_OPEN;
-	TAILQ_INSERT_TAIL(&cnf->networks, nw, networks);
-
-	nw = calloc(1, sizeof(*nw));
-	nw->nwid = strdup("c3pb");
-	nw->type = NW_WPA2;
-	nw->wpakey = strdup("chaoschaos");
-	TAILQ_INSERT_TAIL(&cnf->networks, nw, networks);
-
-	nw = calloc(1, sizeof(*nw));
-	nw->nwid = strdup("bier");
-	nw->type = NW_OPEN;
-	TAILQ_INSERT_TAIL(&cnf->networks, nw, networks);
-
-	return cnf;
-}
 
 struct network *
 select_network(struct config *cnf, struct ieee80211_nodereq *nr, int numr) {
@@ -78,8 +34,10 @@ select_network(struct config *cnf, struct ieee80211_nodereq *nr, int numr) {
 		struct network *n;
 
 		TAILQ_FOREACH(n, &cnf->networks, networks) {
-			if (!strncmp(n->nwid, (char*) nr[i].nr_nwid, IEEE80211_NWID_LEN)) {
-				memcpy(n->bssid, nr[i].nr_bssid, IEEE80211_ADDR_LEN);
+			if (!strncmp(n->nwid, (char*) nr[i].nr_nwid,
+			             IEEE80211_NWID_LEN)) {
+				memcpy(n->bssid, nr[i].nr_bssid,
+				       IEEE80211_ADDR_LEN);
 				return n;
 			}
 		}
@@ -107,7 +65,6 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 
 	assert(nrlen > 0);
 
-	fprintf(stderr, "%llu: %s, len=%d\n", time(NULL), __func__, nrlen);
 	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 		err(1, "socket");
 
@@ -115,6 +72,8 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 		case -1:
 			err(1, "fork");
 		case 0:
+			fclose(stdout);
+			fclose(stderr);
 			execlp("ifconfig", "ifconfig", cnf->device, "up", NULL);
 			err(1, "execlp");
 		default:
@@ -142,8 +101,6 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 
 	qsort(nr, na.na_nodes, sizeof(*nr), rssicmp);
 
-	fprintf(stderr, "%llu: %s, len=%d\n", time(NULL), __func__, na.na_nodes);
-
 	return na.na_nodes;
 }
 
@@ -153,8 +110,6 @@ configure_network(struct config *cnf, struct network *nw) {
 	struct ether_addr ea;
 	char *bssid;
 	char *params[10]; /* Maximum number of ifconfig parameters */
-
-	fprintf(stderr, "%llu: configuration %p\n", time(NULL), (void*) nw);
 
 	if (!nw) {
 		return;
@@ -166,7 +121,8 @@ configure_network(struct config *cnf, struct network *nw) {
 			err(1, "fork");
 		case 0:
 			/* inside child */
-			execlp("ifconfig", "ifconfig", cnf->device, "-wpa", "-wpakey", "-nwid", "-bssid", "-chan", NULL);
+			execlp("ifconfig", "ifconfig", cnf->device, "-wpa",
+			       "-wpakey", "-nwid", "-bssid", "-chan", NULL);
 			err(1, "execlp");
 		default:
 			/* parent */
@@ -218,14 +174,30 @@ configure_network(struct config *cnf, struct network *nw) {
 }
 
 int
-main(void) {
+main(int argc, char **argv) {
 	struct config *cnf;
+	struct network *nw;
 	struct ieee80211_nodereq nr[SCANSZ];
 	int numnodes, i;
 	FILE *fh;
 
-	cnf = make_config();
-	fprintf(stderr, "%llu: device=%s\n", time(NULL), cnf->device);
+	if (argc == 2)
+		cnf = parse_config(argv[1]);
+	else
+		cnf = parse_config("wireless.conf");
+
+	if (!cnf) {
+		return 1;
+	}
+
+	if (!cnf->device) {
+		errx(1, "No device specified");
+	}
+
+	fprintf(stderr, "device=%s\n", cnf->device);
+	TAILQ_FOREACH(nw, &cnf->networks, networks) {
+		fprintf(stderr, "nwid: %s\n", nw->nwid);
+	}
 
 	memset(nr, 0x00, ARRAY_SIZE(nr));
 	numnodes = scan(cnf, nr, ARRAY_SIZE(nr));
@@ -248,12 +220,14 @@ main(void) {
 		memcpy(nwid, nr[i].nr_nwid, len);
 		nwid[len] = 0x00;
 
-		memcpy(&ea.ether_addr_octet, nr[i].nr_bssid, sizeof(ea.ether_addr_octet));
+		memcpy(&ea.ether_addr_octet, nr[i].nr_bssid,
+		       sizeof(ea.ether_addr_octet));
 
 		enc = nr[i].nr_capinfo & IEEE80211_CAPINFO_PRIVACY;
 
 		/* bssid signal strength enc? nwid */
-		fprintf(fh, "%s\t%d\t%s\t%s\n", ether_ntoa(&ea), nr[i].nr_rssi, enc? "enc": "", nwid);
+		fprintf(fh, "%s\t%d\t%s\t%s\n", ether_ntoa(&ea), nr[i].nr_rssi,
+		        enc? "enc": "", nwid);
 	}
 
 	fclose(fh);

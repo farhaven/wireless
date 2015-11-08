@@ -187,7 +187,7 @@ main(int argc, char **argv) {
 	if (argc == 2)
 		cnf = parse_config(argv[1]);
 	else
-		cnf = parse_config("wireless.conf");
+		cnf = parse_config("/etc/wireless.conf");
 
 	if (!cnf) {
 		return 1;

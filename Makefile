@@ -1,6 +1,7 @@
 PROG=wireless
 MAN =
 SRCS=wireless.c parse.y conflex.l
+BINDIR=/usr/local/bin
 
 CFLAGS += -Wall -Werror -pedantic
 CFLAGS += -std=c99

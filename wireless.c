@@ -121,7 +121,8 @@ configure_network(struct config *cnf, struct network *nw) {
 		case 0:
 			/* inside child */
 			execlp("ifconfig", "ifconfig", cnf->device, "-wpa",
-			       "-wpakey", "-nwid", "-bssid", "-chan", NULL);
+			       "-wpakey", "-wpaakms", "-nwid", "-bssid",
+			       "-chan", NULL);
 			err(1, "execlp");
 		default:
 			/* parent */

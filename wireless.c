@@ -108,7 +108,7 @@ configure_network(struct config *cnf, struct network *nw) {
 	pid_t child;
 	struct ether_addr ea;
 	char *bssid;
-	char *params[10]; /* Maximum number of ifconfig parameters */
+	char *params[12]; /* Maximum number of ifconfig parameters */
 
 	if (!nw) {
 		return;
@@ -121,8 +121,7 @@ configure_network(struct config *cnf, struct network *nw) {
 		case 0:
 			/* inside child */
 			execlp("ifconfig", "ifconfig", cnf->device, "-wpa",
-			       "-wpakey", "-wpaakms", "-nwid", "-bssid",
-			       "-chan", NULL);
+			       "-wpakey", "-nwid", "-bssid", "-chan", NULL);
 			err(1, "execlp");
 		default:
 			/* parent */
@@ -159,11 +158,14 @@ configure_network(struct config *cnf, struct network *nw) {
 			if (nw->type == NW_WPA2) {
 				params[7] = "wpakey";
 				params[8] = nw->wpakey;
+				params[9] = "wpaakms";
+				params[10] = "psk";
+				params[11] = NULL;
 			} else {
 				params[7] = "wpaakms";
 				params[8] = "802.1x";
+				params[9] = NULL;
 			}
-			params[9] = NULL;
 			break;
 		default:
 			errx(1, "unknown network type :(");

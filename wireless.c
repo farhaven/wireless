@@ -128,55 +128,61 @@ configure_network(struct config *cnf, struct network *nw) {
 			waitpid(child, NULL, 0);
 	}
 
-	if ((child = fork()) == -1)
-		err(1, "fork");
+	switch ((child = fork())) {
+		case -1:
+			err(1, "fork");
+		case 0:
+			/* inside child */
+			memcpy(&ea.ether_addr_octet, nw->bssid, sizeof(ea.ether_addr_octet));
+			bssid = ether_ntoa(&ea);
 
-	if (child != 0) {
-		waitpid(child, NULL, 0);
-		return;
-	}
+			/* Common parameters for all configuration options */
+			params[0] = "ifconfig";
+			params[1] = cnf->device;
+			params[2] = "nwid";
+			params[3] = nw->nwid;
+			params[4] = "bssid";
+			params[5] = bssid;
 
-	memcpy(&ea.ether_addr_octet, nw->bssid, sizeof(ea.ether_addr_octet));
-	bssid = ether_ntoa(&ea);
-
-	/* Common parameters for all configuration options */
-	params[0] = "ifconfig";
-	params[1] = cnf->device;
-	params[2] = "nwid";
-	params[3] = nw->nwid;
-	params[4] = "bssid";
-	params[5] = bssid;
-
-	/* three options: open wifi, wpa/wpa2 or 802.1X */
-	switch (nw->type) {
-		case NW_OPEN:
-			params[6] = NULL;
-			break;
-		case NW_WPA2:
-		case NW_8021X:
-			params[6] = "wpa";
-			if (nw->type == NW_WPA2) {
+			/* three options: open wifi, wpa/wpa2 or 802.1X */
+			if (nw->type == NW_OPEN) {
+				params[6] = NULL;
+			} else if (nw->type == NW_WPA2) {
+				params[6] = "wpa";
 				params[7] = "wpakey";
 				params[8] = nw->wpakey;
 				params[9] = "wpaakms";
 				params[10] = "psk";
 				params[11] = NULL;
 			} else {
+				params[6] = "wpa";
 				params[7] = "wpaakms";
 				params[8] = "802.1x";
 				params[9] = NULL;
 			}
-			break;
+
+			if (cnf->verbose) {
+				fprintf(stderr, "configuring wireless network %s\n", nw->nwid);
+			}
+
+			execv("/sbin/ifconfig", params);
+			err(1, "execv");
 		default:
-			errx(1, "unknown network type :(");
+			waitpid(child, NULL, 0);
 	}
 
-	if (cnf->verbose) {
-		fprintf(stderr, "configuring wireless network %s\n", nw->nwid);
+	if (nw->type == NW_8021X) {
+		switch ((child = fork())) {
+			case -1:
+				err(1, "fork");
+			case 0:
+				/* inside child */
+				execlp("wpa_cli", "reassoc", NULL);
+				err(1, "execlp");
+			default:
+				waitpid(child, NULL, 0);
+		}
 	}
-
-	execv("/sbin/ifconfig", params);
-	err(1, "execv");
 }
 
 int

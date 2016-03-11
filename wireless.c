@@ -233,7 +233,7 @@ main(int argc, char **argv) {
 
 		/* bssid signal strength enc? nwid */
 		fprintf(fh, "%s\t%d\t%s\t%s\n", ether_ntoa(&ea), nr[i].nr_rssi,
-		        enc? "enc": "", nwid);
+		        enc? "enc": "open", nwid);
 	}
 
 	fclose(fh);

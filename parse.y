@@ -25,7 +25,7 @@ struct config *conf;
 %}
 
 %token	T_DEVICE
-%token	ERROR T_VERBOSE
+%token	ERROR T_VERBOSE T_DEBUG
 %token	T_NET_OPEN T_NET_WPA T_NET_8021X
 %token	T_STRING
 
@@ -38,6 +38,7 @@ struct config *conf;
 grammar	:
 		| grammar '\n'
 		| grammar verbose '\n'
+		| grammar debug '\n'
 		| grammar network '\n'
 		| grammar device '\n'
 		| grammar error '\n' { file.errors++; }
@@ -85,6 +86,12 @@ wpa		: T_NET_WPA T_STRING T_STRING
 verbose		: T_VERBOSE
 		{
 			conf->verbose = 1;
+		}
+		;
+
+debug		: T_DEBUG
+		{
+			conf->debug = 1;
 		}
 		;
 %%

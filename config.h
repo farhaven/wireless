@@ -21,6 +21,7 @@ struct config {
 	TAILQ_HEAD(, network) networks;
 	char *device;
 	int verbose;
+	int debug;
 };
 
 typedef struct {

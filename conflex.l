@@ -11,6 +11,7 @@ char *extract_string(char*);
 %}
 
 %%
+debug		return T_DEBUG;
 verbose		return T_VERBOSE;
 device		return T_DEVICE;
 open		return T_NET_OPEN;

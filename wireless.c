@@ -248,7 +248,9 @@ main(int argc, char **argv) {
 	memset(nr, 0x00, ARRAY_SIZE(nr));
 	numnodes = scan(cnf, nr, ARRAY_SIZE(nr));
 
-	configure_network(cnf, select_network(cnf, nr, numnodes));
+	if (!cnf->debug) {
+		configure_network(cnf, select_network(cnf, nr, numnodes));
+	}
 
 	write_nwlist(cnf, nr, numnodes);
 

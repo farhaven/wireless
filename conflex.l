@@ -17,9 +17,9 @@ device		return T_DEVICE;
 open		return T_NET_OPEN;
 wpa		return T_NET_WPA;
 802.1x		return T_NET_8021X;
-[[:alnum:][:punct:]]+		yylval.v.string=strdup(yytext); return T_STRING;
 \"[[:print:]]+\"	yylval.v.string=extract_string(yytext); return T_STRING;
 '[[:print:]]+'	yylval.v.string=extract_string(yytext); return T_STRING;
+[[:alnum:][:punct:]]+		yylval.v.string=strdup(yytext); return T_STRING;
 #.*\n		|
 \n		yylval.lineno++; return '\n';
 [ \t]		;

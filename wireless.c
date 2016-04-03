@@ -33,10 +33,8 @@ select_network(struct config *cnf, struct ieee80211_nodereq *nr, int numr) {
 		struct network *n;
 
 		TAILQ_FOREACH(n, &cnf->networks, networks) {
-			if (!strncmp(n->nwid, (char*) nr[i].nr_nwid,
-			             IEEE80211_NWID_LEN)) {
-				memcpy(n->bssid, nr[i].nr_bssid,
-				       IEEE80211_ADDR_LEN);
+			if (!strncmp(n->nwid, (char*) nr[i].nr_nwid, IEEE80211_NWID_LEN)) {
+				memcpy(n->bssid, nr[i].nr_bssid, IEEE80211_ADDR_LEN);
 				return n;
 			}
 		}
@@ -185,12 +183,54 @@ configure_network(struct config *cnf, struct network *nw) {
 	}
 }
 
+void
+write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
+	int i;
+	FILE *fh;
+
+	/* Write out /tmp/nw-aps */
+	if ((fh = fopen("/tmp/nw-aps", "w")) == NULL)
+		err(1, "open");
+
+	for (i = 0; i < numnodes; i++) {
+		char nwid[IEEE80211_NWID_LEN + 1];
+		struct ether_addr ea;
+		int len, enc, known;
+		struct network *n;
+
+		nwid[IEEE80211_NWID_LEN] = 0x00;
+		len = nr[i].nr_nwid_len;
+		if (len > IEEE80211_NWID_LEN)
+			len = IEEE80211_NWID_LEN;
+		memcpy(nwid, nr[i].nr_nwid, len);
+		nwid[len] = 0x00;
+
+		memcpy(&ea.ether_addr_octet, nr[i].nr_bssid,
+		       sizeof(ea.ether_addr_octet));
+
+		enc = nr[i].nr_capinfo & IEEE80211_CAPINFO_PRIVACY;
+
+		known = 0;
+		TAILQ_FOREACH(n, &cnf->networks, networks) {
+			if (!strncmp(n->nwid, (char*) nr[i].nr_nwid, IEEE80211_NWID_LEN)) {
+				known = 1;
+				break;
+			}
+		}
+
+		/* bssid signal strength enc? nwid */
+		fprintf(fh, "%s\t%d\t%s\t%sknown\t%s\n", ether_ntoa(&ea), nr[i].nr_rssi,
+		        enc? "enc": "open", known?"": "un", nwid);
+	}
+
+	fclose(fh);
+}
+
 int
 main(int argc, char **argv) {
 	struct config *cnf;
 	struct ieee80211_nodereq nr[SCANSZ];
-	int numnodes, i;
-	FILE *fh;
+	int numnodes;
 
 	if (argc == 2)
 		cnf = parse_config(argv[1]);
@@ -210,33 +250,7 @@ main(int argc, char **argv) {
 
 	configure_network(cnf, select_network(cnf, nr, numnodes));
 
-	/* Write out /tmp/nw-aps */
-	if ((fh = fopen("/tmp/nw-aps", "w")) == NULL)
-		err(1, "open");
-
-	for (i = 0; i < numnodes; i++) {
-		char nwid[IEEE80211_NWID_LEN + 1];
-		struct ether_addr ea;
-		int len, enc;
-
-		nwid[IEEE80211_NWID_LEN] = 0x00;
-		len = nr[i].nr_nwid_len;
-		if (len > IEEE80211_NWID_LEN)
-			len = IEEE80211_NWID_LEN;
-		memcpy(nwid, nr[i].nr_nwid, len);
-		nwid[len] = 0x00;
-
-		memcpy(&ea.ether_addr_octet, nr[i].nr_bssid,
-		       sizeof(ea.ether_addr_octet));
-
-		enc = nr[i].nr_capinfo & IEEE80211_CAPINFO_PRIVACY;
-
-		/* bssid signal strength enc? nwid */
-		fprintf(fh, "%s\t%d\t%s\t%s\n", ether_ntoa(&ea), nr[i].nr_rssi,
-		        enc? "enc": "open", nwid);
-	}
-
-	fclose(fh);
+	write_nwlist(cnf, nr, numnodes);
 
 	return 0;
 }

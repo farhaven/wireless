@@ -1,5 +1,4 @@
-/*	$OpenBSD: parse.y,v 1.286 2015/10/27 18:19:33 mmcc Exp $ */
-
+/* Based on OpenBGPD's parse.y */
 /*
  * Copyright (c) 2002, 2003, 2004 Henning Brauer <henning@openbsd.org>
  * Copyright (c) 2001 Markus Friedl.  All rights reserved.
@@ -50,7 +49,6 @@ static struct file {
 } *file, *topfile;
 struct file	*pushfile(const char *);
 int		 popfile(void);
-int		 check_file_secrecy(int, const char *);
 int		 yyparse(void);
 int		 yylex(void);
 int		 yyerror(const char *, ...)
@@ -66,11 +64,10 @@ TAILQ_HEAD(symhead, sym)	 symhead = TAILQ_HEAD_INITIALIZER(symhead);
 struct sym {
 	TAILQ_ENTRY(sym)	 entry;
 	int			 used;
-	int			 persist;
 	char			*nam;
 	char			*val;
 };
-int		 symset(const char *, const char *, int);
+int		 symset(const char *, const char *);
 char		*symget(const char *);
 
 struct network * new_network(enum network_type, char *);
@@ -99,7 +96,7 @@ grammar		: /* empty */
 
 varset		: T_STRING T_EQ T_STRING		{
 			printf("%s = \"%s\"\n", $1, $3);
-			if (symset($1, $3, 0) == -1)
+			if (symset($1, $3) == -1)
 				err(1, "cannot store variable");
 			free($1);
 			free($3);
@@ -209,8 +206,8 @@ lookup(char *s)
 		{ "=",		T_EQ },
 		{ "debug",	T_DEBUG },
 		{ "device",	T_DEVICE },
-		{ "include",	T_INCLUDE},
-		{ "network",	T_NETWORK},
+		{ "include",	T_INCLUDE },
+		{ "network",	T_NETWORK },
 		{ "open",	T_NET_OPEN },
 		{ "verbose",	T_VERBOSE },
 		{ "wpa",	T_NET_WPA },
@@ -228,26 +225,13 @@ lookup(char *s)
 
 #define MAXPUSHBACK	128
 
-char	*parsebuf;
-int	 parseindex;
-u_char	 pushback_buffer[MAXPUSHBACK];
-int	 pushback_index = 0;
+u_char	pushback_buffer[MAXPUSHBACK];
+int	pushback_index = 0;
 
 int
 lgetc(int quotec)
 {
-	int		c, next;
-
-	if (parsebuf) {
-		/* Read character from the parsebuffer instead of input. */
-		if (parseindex >= 0) {
-			c = parsebuf[parseindex++];
-			if (c != '\0')
-				return (c);
-			parsebuf = NULL;
-		} else
-			parseindex++;
-	}
+	int	c, next;
 
 	if (pushback_index)
 		return (pushback_buffer[--pushback_index]);
@@ -255,7 +239,7 @@ lgetc(int quotec)
 	if (quotec) {
 		if ((c = getc(file->stream)) == EOF) {
 			yyerror("reached end of file while parsing "
-			    "quoted string");
+			        "quoted string");
 			if (file == topfile || popfile() == EOF)
 				return (EOF);
 			return (quotec);
@@ -286,11 +270,6 @@ lungetc(int c)
 {
 	if (c == EOF)
 		return (EOF);
-	if (parsebuf) {
-		parseindex--;
-		if (parseindex >= 0)
-			return (c);
-	}
 	if (pushback_index < MAXPUSHBACK-1)
 		return (pushback_buffer[pushback_index++] = c);
 	else
@@ -301,8 +280,6 @@ int
 findeol(void)
 {
 	int	c;
-
-	parsebuf = NULL;
 
 	/* skip to either EOF or the first real EOL */
 	while (1) {
@@ -336,7 +313,7 @@ yylex(void)
 	if (c == '#')
 		while ((c = lgetc(0)) != '\n' && c != EOF)
 			; /* nothing */
-	if (c == '$' && parsebuf == NULL) {
+	if (c == '$') {
 		while (1) {
 			if ((c = lgetc(0)) == EOF)
 				return (0);
@@ -409,16 +386,18 @@ yylex(void)
 	if (allowed_in_string(c)) {
 		do {
 			*p++ = c;
-			if ((unsigned)(p-buf) >= sizeof(buf)) {
+			if ((unsigned)(p - buf) >= sizeof(buf)) {
 				yyerror("string too long");
 				return (findeol());
 			}
 		} while ((c = lgetc(0)) != EOF && (allowed_in_string(c)));
 		lungetc(c);
 		*p = '\0';
-		if ((token = lookup(buf)) == T_STRING)
-			if ((yylval.v.string = strdup(buf)) == NULL)
+		if ((token = lookup(buf)) == T_STRING) {
+			yylval.v.string = strdup(buf);
+			if (yylval.v.string == NULL)
 				err(1, "yylex: strdup");
+		}
 		return (token);
 	}
 	if (c == '\n') {
@@ -474,6 +453,7 @@ popfile(void)
 struct config *
 new_config() {
 	struct config *cnf = calloc(1, sizeof(*cnf));
+
 	if (cnf == NULL) {
 		return NULL;
 	}
@@ -485,8 +465,8 @@ new_config() {
 struct config *
 parse_config(char *filename)
 {
-	struct sym		*sym, *next;
-	int			 errors = 0;
+	struct sym	*sym, *next;
+	int		errors = 0;
 
 	conf = new_config();
 
@@ -506,12 +486,10 @@ parse_config(char *filename)
 		if (!sym->used)
 			fprintf(stderr, "warning: macro \"%s\" not used\n",
 			        sym->nam);
-		if (!sym->persist) {
-			free(sym->nam);
-			free(sym->val);
-			TAILQ_REMOVE(&symhead, sym, entry);
-			free(sym);
-		}
+		free(sym->nam);
+		free(sym->val);
+		TAILQ_REMOVE(&symhead, sym, entry);
+		free(sym);
 	}
 
 	if (errors) {
@@ -523,7 +501,7 @@ parse_config(char *filename)
 }
 
 int
-symset(const char *nam, const char *val, int persist)
+symset(const char *nam, const char *val)
 {
 	struct sym	*sym;
 
@@ -532,14 +510,10 @@ symset(const char *nam, const char *val, int persist)
 		;	/* nothing */
 
 	if (sym != NULL) {
-		if (sym->persist == 1)
-			return (0);
-		else {
-			free(sym->nam);
-			free(sym->val);
-			TAILQ_REMOVE(&symhead, sym, entry);
-			free(sym);
-		}
+		free(sym->nam);
+		free(sym->val);
+		TAILQ_REMOVE(&symhead, sym, entry);
+		free(sym);
 	}
 	if ((sym = calloc(1, sizeof(*sym))) == NULL)
 		return (-1);
@@ -555,8 +529,6 @@ symset(const char *nam, const char *val, int persist)
 		free(sym);
 		return (-1);
 	}
-	sym->used = 0;
-	sym->persist = persist;
 	TAILQ_INSERT_TAIL(&symhead, sym, entry);
 	return (0);
 }

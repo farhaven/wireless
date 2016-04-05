@@ -81,11 +81,9 @@ static struct config	*conf;
 %token	T_DEVICE
 %token	T_VERBOSE T_DEBUG
 %token	T_NET_OPEN T_NET_WPA T_NET_8021X
-%token	NETWORK
-%token	ERROR INCLUDE
-%token	<v.string>		STRING
-%token	<v.number>		NUMBER
-%type	<v.string>		string
+%token	T_NETWORK T_EQ
+%token	T_ERROR T_INCLUDE
+%token	<v.string>	T_STRING
 %%
 
 grammar		: /* empty */
@@ -99,16 +97,7 @@ grammar		: /* empty */
 		| grammar error '\n'		{ file->errors++; }
 		;
 
-string		: string STRING			{
-			if (asprintf(&$$, "%s %s", $1, $2) == -1)
-				err(1, "string: asprintf");
-			free($1);
-			free($2);
-		}
-		| STRING
-		;
-
-varset		: string '=' STRING		{
+varset		: T_STRING T_EQ T_STRING		{
 			printf("%s = \"%s\"\n", $1, $3);
 			if (symset($1, $3, 0) == -1)
 				err(1, "cannot store variable");
@@ -117,7 +106,7 @@ varset		: string '=' STRING		{
 		}
 		;
 
-include		: INCLUDE STRING		{
+include		: T_INCLUDE T_STRING		{
 			struct file	*nfile;
 
 			if ((nfile = pushfile($2)) == NULL) {
@@ -132,7 +121,7 @@ include		: INCLUDE STRING		{
 		}
 		;
 
-device		: T_DEVICE STRING
+device		: T_DEVICE T_STRING
 		{
 			if (strlen($2) > IFNAMSIZ) {
 				char *tmp;
@@ -149,21 +138,21 @@ device		: T_DEVICE STRING
 
 network		: open | wpa | enterprise;
 
-open		: T_NET_OPEN STRING
+open		: T_NET_OPEN T_STRING
 		{
 			struct network *nw = new_network(NW_OPEN, $2);
 			TAILQ_INSERT_TAIL(&conf->networks, nw, networks);
 		}
 		;
 
-enterprise	: T_NET_8021X STRING
+enterprise	: T_NET_8021X T_STRING
 		{
 			struct network *nw = new_network(NW_8021X, $2);
 			TAILQ_INSERT_TAIL(&conf->networks, nw, networks);
 		}
 		;
 
-wpa		: T_NET_WPA STRING STRING
+wpa		: T_NET_WPA T_STRING T_STRING
 		{
 			struct network *nw = new_network(NW_WPA2, $2);
 			nw->wpakey = $3;
@@ -216,14 +205,15 @@ lookup(char *s)
 {
 	/* this has to be sorted always */
 	static const struct keywords keywords[] = {
-		{ "802.1x", T_NET_8021X },
-		{ "debug", T_DEBUG },
-		{ "device", T_DEVICE },
-		{ "include",		INCLUDE},
-		{ "network",		NETWORK},
-		{ "open", T_NET_OPEN },
-		{ "verbose", T_VERBOSE },
-		{ "wpa", T_NET_WPA },
+		{ "802.1x",	T_NET_8021X },
+		{ "=",		T_EQ },
+		{ "debug",	T_DEBUG },
+		{ "device",	T_DEVICE },
+		{ "include",	T_INCLUDE},
+		{ "network",	T_NETWORK},
+		{ "open",	T_NET_OPEN },
+		{ "verbose",	T_VERBOSE },
+		{ "wpa",	T_NET_WPA },
 	};
 	const struct keywords	*p;
 
@@ -233,7 +223,7 @@ lookup(char *s)
 	if (p)
 		return (p->k_val);
 	else
-		return (STRING);
+		return (T_STRING);
 }
 
 #define MAXPUSHBACK	128
@@ -327,7 +317,7 @@ findeol(void)
 		if (c == EOF)
 			break;
 	}
-	return (ERROR);
+	return (T_ERROR);
 }
 
 int
@@ -338,7 +328,6 @@ yylex(void)
 	int	 quotec, next, c;
 	int	 token;
 
-top:
 	p = buf;
 	while ((c = lgetc(0)) == ' ' || c == '\t')
 		; /* nothing */
@@ -369,9 +358,10 @@ top:
 			yyerror("macro '%s' not defined", buf);
 			return (findeol());
 		}
-		parsebuf = val;
-		parseindex = 0;
-		goto top;
+		yylval.v.string = strdup(val);
+		if (yylval.v.string == NULL)
+			err(1, "strdup");
+		return T_STRING;
 	}
 
 	switch (c) {
@@ -410,7 +400,7 @@ top:
 		yylval.v.string = strdup(buf);
 		if (yylval.v.string == NULL)
 			err(1, "yylex: strdup");
-		return (STRING);
+		return (T_STRING);
 	}
 
 #define allowed_in_string(x) \
@@ -426,7 +416,7 @@ top:
 		} while ((c = lgetc(0)) != EOF && (allowed_in_string(c)));
 		lungetc(c);
 		*p = '\0';
-		if ((token = lookup(buf)) == STRING)
+		if ((token = lookup(buf)) == T_STRING)
 			if ((yylval.v.string = strdup(buf)) == NULL)
 				err(1, "yylex: strdup");
 		return (token);
@@ -506,16 +496,16 @@ parse_config(char *filename)
 	}
 	topfile = file;
 
-	fprintf(stderr, "parsing %s\n", filename);
 	yyparse();
 	errors = file->errors;
 	popfile();
-	fprintf(stderr, "done parsing %s, errors=%d\n", filename, errors);
 
 	/* Free macros and check which have not been used. */
 	for (sym = TAILQ_FIRST(&symhead); sym != NULL; sym = next) {
 		next = TAILQ_NEXT(sym, entry);
-		fprintf(stderr, "warning: macro \"%s\" not " "used\n", sym->nam);
+		if (!sym->used)
+			fprintf(stderr, "warning: macro \"%s\" not used\n",
+			        sym->nam);
 		if (!sym->persist) {
 			free(sym->nam);
 			free(sym->val);

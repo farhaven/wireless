@@ -36,6 +36,16 @@ double quotes. Regular string quoting rules apply:
 
     wpa "Hello\"foo" 'I'm a password!'
 
+You can include files with the `include` statement:
+
+    include "/home/user/.wireless.conf"
+
+Macros can be set and used like this:
+
+    mypw = "foobar! 1234#$"
+    wpa nw1 $mypw
+    wpa nw2 $mypw
+
 The priority of a network depends on the order of networks in the configuration
 file. The earlier a network appears, the higher is its priority. If an SSID is
 visible multiple times (such as in campus networks), the access point with the

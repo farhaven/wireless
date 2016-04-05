@@ -7,6 +7,4 @@ CFLAGS += -Wall -Werror -pedantic
 CFLAGS += -std=c99
 CFLAGS += -g -O0
 
-LDADD += -lutil
-
 .include <bsd.prog.mk>

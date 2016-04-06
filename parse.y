@@ -1,5 +1,6 @@
 /* Based on OpenBGPD's parse.y */
 /*
+ * Copyright (c) 2016 Gregor Best <gbe@unobtanium.de>
  * Copyright (c) 2002, 2003, 2004 Henning Brauer <henning@openbsd.org>
  * Copyright (c) 2001 Markus Friedl.  All rights reserved.
  * Copyright (c) 2001 Daniel Hartmeier.  All rights reserved.
@@ -19,23 +20,13 @@
  */
 
 %{
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/un.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/queue.h>
 #include <net/if.h>
 
 #include <ctype.h>
 #include <err.h>
-#include <unistd.h>
-#include <errno.h>
-#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <string.h>
 
 #include "config.h"
 
@@ -70,7 +61,7 @@ struct sym {
 int		 symset(const char *, const char *);
 char		*symget(const char *);
 
-struct network * new_network(enum network_type, char *);
+struct network	*new_network(enum network_type, char *);
 
 static struct config	*conf;
 %}
@@ -91,10 +82,10 @@ grammar		: /* empty */
 		| grammar debug '\n'
 		| grammar network '\n'
 		| grammar device '\n'
-		| grammar error '\n'		{ file->errors++; }
+		| grammar error '\n'	{ file->errors++; }
 		;
 
-varset		: T_STRING T_EQ T_STRING		{
+varset		: T_STRING T_EQ T_STRING {
 			printf("%s = \"%s\"\n", $1, $3);
 			if (symset($1, $3) == -1)
 				err(1, "cannot store variable");
@@ -103,7 +94,7 @@ varset		: T_STRING T_EQ T_STRING		{
 		}
 		;
 
-include		: T_INCLUDE T_STRING		{
+include		: T_INCLUDE T_STRING {
 			struct file	*nfile;
 
 			if ((nfile = pushfile($2)) == NULL) {
@@ -118,8 +109,7 @@ include		: T_INCLUDE T_STRING		{
 		}
 		;
 
-device		: T_DEVICE T_STRING
-		{
+device		: T_DEVICE T_STRING {
 			if (strlen($2) > IFNAMSIZ) {
 				char *tmp;
 				asprintf(&tmp,"Device name '%s' too long "
@@ -135,38 +125,29 @@ device		: T_DEVICE T_STRING
 
 network		: open | wpa | enterprise;
 
-open		: T_NET_OPEN T_STRING
-		{
+open		: T_NET_OPEN T_STRING {
 			struct network *nw = new_network(NW_OPEN, $2);
 			TAILQ_INSERT_TAIL(&conf->networks, nw, networks);
 		}
 		;
 
-enterprise	: T_NET_8021X T_STRING
-		{
+enterprise	: T_NET_8021X T_STRING {
 			struct network *nw = new_network(NW_8021X, $2);
 			TAILQ_INSERT_TAIL(&conf->networks, nw, networks);
 		}
 		;
 
-wpa		: T_NET_WPA T_STRING T_STRING
-		{
+wpa		: T_NET_WPA T_STRING T_STRING {
 			struct network *nw = new_network(NW_WPA2, $2);
 			nw->wpakey = $3;
 			TAILQ_INSERT_TAIL(&conf->networks, nw, networks);
 		}
 		;
 
-verbose		: T_VERBOSE
-		{
-			conf->verbose = 1;
-		}
+verbose		: T_VERBOSE { conf->verbose = 1; }
 		;
 
-debug		: T_DEBUG
-		{
-			conf->debug = 1;
-		}
+debug		: T_DEBUG { conf->debug = 1; }
 		;
 %%
 
@@ -178,8 +159,8 @@ struct keywords {
 int
 yyerror(const char *fmt, ...)
 {
-	va_list		 ap;
-	char		*msg;
+	va_list	 ap;
+	char	*msg;
 
 	file->errors++;
 	va_start(ap, fmt);
@@ -506,7 +487,7 @@ symset(const char *nam, const char *val)
 	struct sym	*sym;
 
 	for (sym = TAILQ_FIRST(&symhead); sym && strcmp(nam, sym->nam);
-	    sym = TAILQ_NEXT(sym, entry))
+	     sym = TAILQ_NEXT(sym, entry))
 		;	/* nothing */
 
 	if (sym != NULL) {

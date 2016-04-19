@@ -191,7 +191,12 @@ configure_network(struct config *cnf, struct network *nw) {
 void
 write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
 	int i, fd;
-	char *tmpname = strdup("/tmp/temp.XXXXXXXXXX");
+	char *tmpname;
+
+	tmpname = strdup("/tmp/temp.XXXXXXXXXX");
+	if (!tmpname) {
+		err(1, NULL);
+	}
 
 	/* Write out /tmp/nw-aps */
 	fd = mkstemp(tmpname);

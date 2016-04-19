@@ -108,6 +108,10 @@ configure_network(struct config *cnf, struct network *nw) {
 	char *bssid;
 	char *params[12]; /* Maximum number of ifconfig parameters */
 
+	if (cnf->debug) {
+		fprintf(stderr, "%s: %p\n", __func__, (void*) nw);
+	}
+
 	if (!nw) {
 		return;
 	}
@@ -251,16 +255,17 @@ main(int argc, char **argv) {
 		fprintf(stderr, "Configured networks:\n");
 
 		TAILQ_FOREACH(n, &cnf->networks, networks) {
-			fprintf(stderr, "\"%s\"\n", n->nwid);
+			fprintf(stderr, "\"%s\"", n->nwid);
+			if (n->type == NW_WPA2)
+				fprintf(stderr, " \"%s\"", n->wpakey);
+			fprintf(stderr, "\n");
 		}
 	}
 
 	memset(nr, 0x00, ARRAY_SIZE(nr));
 	numnodes = scan(cnf, nr, ARRAY_SIZE(nr));
 
-	if (!cnf->debug) {
-		configure_network(cnf, select_network(cnf, nr, numnodes));
-	}
+	configure_network(cnf, select_network(cnf, nr, numnodes));
 
 	write_nwlist(cnf, nr, numnodes);
 

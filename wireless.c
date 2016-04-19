@@ -122,8 +122,7 @@ configure_network(struct config *cnf, struct network *nw) {
 			err(1, "fork");
 		case 0:
 			/* inside child */
-			execlp("ifconfig", "ifconfig", cnf->device, "-wpa",
-			       "-wpakey", "-nwid", "-bssid", "-chan", NULL);
+			execlp("ifconfig", "ifconfig", cnf->device, "-chan", NULL);
 			err(1, "execlp");
 		default:
 			/* parent */
@@ -148,7 +147,9 @@ configure_network(struct config *cnf, struct network *nw) {
 
 			/* three options: open wifi, wpa/wpa2 or 802.1X */
 			if (nw->type == NW_OPEN) {
-				params[6] = NULL;
+				params[6] = "-wpa";
+				params[7] = "-wpakey";
+				params[8] = NULL;
 			} else if (nw->type == NW_WPA2) {
 				params[6] = "wpa";
 				params[7] = "wpakey";

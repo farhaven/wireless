@@ -190,12 +190,14 @@ configure_network(struct config *cnf, struct network *nw) {
 
 void
 write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
-	int i;
-	FILE *fh;
+	int i, fd;
+	char *tmpname = strdup("/tmp/temp.XXXXXXXXXX");
 
 	/* Write out /tmp/nw-aps */
-	if ((fh = fopen("/tmp/nw-aps", "w")) == NULL)
-		err(1, "open");
+	fd = mkstemp(tmpname);
+	if (fd < 0) {
+		err(1, "mkstemp");
+	}
 
 	for (i = 0; i < numnodes; i++) {
 		char nwid[IEEE80211_NWID_LEN + 1];
@@ -224,11 +226,16 @@ write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
 		}
 
 		/* bssid signal strength enc? nwid */
-		fprintf(fh, "%s\t%d\t%s\t%sknown\t%s\n", ether_ntoa(&ea), nr[i].nr_rssi,
+		dprintf(fd, "%s\t%d\t%s\t%sknown\t%s\n", ether_ntoa(&ea), nr[i].nr_rssi,
 		        enc? "enc": "open", known?"": "un", nwid);
 	}
 
-	fclose(fh);
+	close(fd);
+
+	if (rename(tmpname, "/tmp/nw-aps") == -1)
+		err(1, "rename");
+
+	free(tmpname);
 }
 
 int

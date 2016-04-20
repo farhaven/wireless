@@ -33,3 +33,4 @@ typedef struct {
 } YYSTYPE;
 
 struct config *parse_config(char *fname);
+void free_config(struct config *);

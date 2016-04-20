@@ -106,23 +106,10 @@ configure_network(struct config *cnf, struct network *nw) {
 	pid_t child;
 	struct ether_addr ea;
 	char *bssid;
-	char *params[12]; /* Maximum number of ifconfig parameters */
+	char *params[13]; /* Maximum number of ifconfig parameters */
 
 	if (!nw) {
 		return;
-	}
-
-	/* clear wireless settings */
-	switch ((child = fork())) {
-		case -1:
-			err(1, "fork");
-		case 0:
-			/* inside child */
-			execlp("ifconfig", "ifconfig", cnf->device, "-chan", NULL);
-			err(1, "execlp");
-		default:
-			/* parent */
-			waitpid(child, NULL, 0);
 	}
 
 	switch ((child = fork())) {
@@ -140,24 +127,31 @@ configure_network(struct config *cnf, struct network *nw) {
 			params[3] = nw->nwid;
 			params[4] = "bssid";
 			params[5] = bssid;
+			params[6] = "-chan"; /* Autoselect channel */
 
 			/* three options: open wifi, wpa/wpa2 or 802.1X */
-			if (nw->type == NW_OPEN) {
-				params[6] = "-wpa";
-				params[7] = "-wpakey";
-				params[8] = NULL;
-			} else if (nw->type == NW_WPA2) {
-				params[6] = "wpa";
-				params[7] = "wpakey";
-				params[8] = nw->wpakey;
-				params[9] = "wpaakms";
-				params[10] = "psk";
-				params[11] = NULL;
-			} else {
-				params[6] = "wpa";
-				params[7] = "wpaakms";
-				params[8] = "802.1x";
-				params[9] = NULL;
+			switch (nw->type) {
+				case NW_OPEN:
+					params[7] = "-wpa";
+					params[8] = "-wpakey";
+					params[9] = NULL;
+					break;
+				case NW_WPA2:
+					params[7] = "wpa";
+					params[8] = "wpakey";
+					params[9] = nw->wpakey;
+					params[10] = "wpaakms";
+					params[11] = "psk";
+					params[12] = NULL;
+					break;
+				case NW_8021X:
+					params[7] = "wpa";
+					params[8] = "wpaakms";
+					params[9] = "802.1x";
+					params[10] = NULL;
+					break;
+				default:
+					errx(1, "Unknown network type %d!\n", nw->type);
 			}
 
 			if (cnf->verbose) {

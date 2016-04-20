@@ -207,8 +207,7 @@ write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
 		memcpy(nwid, nr[i].nr_nwid, len);
 		nwid[len] = 0x00;
 
-		memcpy(&ea.ether_addr_octet, nr[i].nr_bssid,
-		       sizeof(ea.ether_addr_octet));
+		memcpy(&ea.ether_addr_octet, nr[i].nr_bssid, sizeof(ea.ether_addr_octet));
 
 		enc = nr[i].nr_capinfo & IEEE80211_CAPINFO_PRIVACY;
 
@@ -222,7 +221,7 @@ write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
 
 		/* bssid signal strength enc? nwid */
 		dprintf(fd, "%s\t%d\t%s\t%sknown\t%s\n", ether_ntoa(&ea), nr[i].nr_rssi,
-		        enc? "enc": "open", known?"": "un", nwid);
+		        enc? "enc": "open", known? "": "un", nwid);
 	}
 
 	close(fd);

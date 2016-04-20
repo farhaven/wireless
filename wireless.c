@@ -233,6 +233,20 @@ write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
 	free(tmpname);
 }
 
+void
+free_config(struct config *cnf) {
+	struct network *n, *tmp;
+
+	TAILQ_FOREACH_SAFE(n, &cnf->networks, networks, tmp) {
+		free(n->nwid);
+		free(n->wpakey);
+		free(n);
+	}
+
+	free(cnf->device);
+	free(cnf);
+}
+
 int
 main(int argc, char **argv) {
 	struct config *cnf;
@@ -249,6 +263,7 @@ main(int argc, char **argv) {
 	}
 
 	if (!cnf->device) {
+		free_config(cnf);
 		errx(1, "No device specified");
 	}
 
@@ -271,6 +286,8 @@ main(int argc, char **argv) {
 	configure_network(cnf, select_network(cnf, nr, numnodes));
 
 	write_nwlist(cnf, nr, numnodes);
+
+	free_config(cnf);
 
 	return 0;
 }

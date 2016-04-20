@@ -487,6 +487,7 @@ parse_config(char *filename)
 
 	if (errors) {
 		/* Handle errors */
+		free_config(conf);
 		return NULL;
 	}
 

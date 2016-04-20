@@ -108,10 +108,6 @@ configure_network(struct config *cnf, struct network *nw) {
 	char *bssid;
 	char *params[12]; /* Maximum number of ifconfig parameters */
 
-	if (cnf->debug) {
-		fprintf(stderr, "%s: %p\n", __func__, (void*) nw);
-	}
-
 	if (!nw) {
 		return;
 	}

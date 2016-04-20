@@ -12,16 +12,16 @@ enum network_type {
 struct network {
 	TAILQ_ENTRY(network) networks;
 	char *nwid;
+	char *wpakey;
 	char bssid[IEEE80211_ADDR_LEN];
 	enum network_type type;
-	char *wpakey;
 };
 
 struct config {
 	TAILQ_HEAD(, network) networks;
 	char *device;
-	int verbose;
 	int debug;
+	int verbose;
 };
 
 typedef struct {

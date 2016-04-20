@@ -170,8 +170,8 @@ configure_network(struct config *cnf, struct network *nw) {
 				err(1, "fork");
 			case 0:
 				/* inside child */
-				execlp("/usr/local/sbin/wpa_cli", "wpa_cli", "reassoc", NULL);
-				err(1, "execlp");
+				execl("/usr/local/sbin/wpa_cli", "wpa_cli", "reassoc", NULL);
+				err(1, "execl");
 			default:
 				waitpid(child, NULL, 0);
 		}

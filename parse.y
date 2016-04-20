@@ -443,6 +443,18 @@ new_config() {
 	return cnf;
 }
 
+struct network *
+new_network(enum network_type type, char *nwid) {
+	struct network *nw = calloc(1, sizeof(*nw));
+	if (nw == NULL) {
+		err(1, NULL);
+	}
+
+	nw->type = type;
+	nw->nwid = nwid;
+	return nw;
+}
+
 struct config *
 parse_config(char *filename)
 {
@@ -525,15 +537,4 @@ symget(const char *nam)
 			return (sym->val);
 		}
 	return (NULL);
-}
-
-struct network *
-new_network(enum network_type type, char *nwid) {
-	struct network *nw = calloc(1, sizeof(*nw));
-	if (nw == NULL) {
-		err(1, "calloc");
-	}
-	nw->type = type;
-	nw->nwid = nwid;
-	return nw;
 }

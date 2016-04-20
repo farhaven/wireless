@@ -151,7 +151,7 @@ configure_network(struct config *cnf, struct network *nw) {
 					}
 					break;
 				default:
-					errx(1, "Unknown network type %d!\n", nw->type);
+					errx(1, "BUG: Unknown network type %d!\n", nw->type);
 			}
 
 			if (cnf->verbose) {

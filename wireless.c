@@ -137,18 +137,18 @@ configure_network(struct config *cnf, struct network *nw) {
 					params[9] = NULL;
 					break;
 				case NW_WPA2:
-					params[7] = "wpa";
-					params[8] = "wpakey";
-					params[9] = nw->wpakey;
-					params[10] = "wpaakms";
-					params[11] = "psk";
-					params[12] = NULL;
-					break;
 				case NW_8021X:
 					params[7] = "wpa";
 					params[8] = "wpaakms";
-					params[9] = "802.1x";
-					params[10] = NULL;
+					if (nw->type == NW_WPA2) {
+						params[9] = "psk";
+						params[10] = "wpakey";
+						params[11] = nw->wpakey;
+						params[12] = NULL;
+					} else {
+						params[9] = "802.1x";
+						params[10] = NULL;
+					}
 					break;
 				default:
 					errx(1, "Unknown network type %d!\n", nw->type);

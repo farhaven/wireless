@@ -99,16 +99,8 @@ configure_network(struct config *cnf, struct network *nw) {
 	char *bssid;
 	char *params[13]; /* Maximum number of ifconfig/wpa_cli parameters */
 
-	if (cnf->debug) {
-		fprintf(stderr, "%s: %p\n", __func__, (void*) nw);
-	}
-
 	if (!nw) {
 		return;
-	}
-
-	if (cnf->debug) {
-		fprintf(stderr, "%s: \"%s\"\n", __func__, nw->nwid);
 	}
 
 	memcpy(&ea.ether_addr_octet, nw->bssid, sizeof(ea.ether_addr_octet));

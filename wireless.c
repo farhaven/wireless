@@ -1,17 +1,15 @@
 #include <assert.h>
 #include <err.h>
-#include <math.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <sys/queue.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -59,24 +57,17 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 	struct ifreq ifr;
 	int s;
 	pid_t child;
+	char *params[4] = { "ifconfig", cnf->device, "up", NULL };
 
 	assert(nrlen > 0);
 
 	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 		err(1, "socket");
 
-	switch ((child = fork())) {
-		case -1:
-			err(1, "fork");
-		case 0:
-			fclose(stdout);
-			fclose(stderr);
-			execlp("ifconfig", "ifconfig", cnf->device, "up", NULL);
-			err(1, "execlp");
-		default:
-			waitpid(child, NULL, 0);
+	if (posix_spawn(&child, "/sbin/ifconfig", NULL, NULL, params, NULL) != 0) {
+		err(1, "posix_spawn: ifconfig");
 	}
-
+	waitpid(child, NULL, 0);
 
 	memset(&ifr, 0x00, sizeof(ifr));
 	(void) strlcpy(ifr.ifr_name, cnf->device, sizeof(ifr.ifr_name));
@@ -106,75 +97,76 @@ configure_network(struct config *cnf, struct network *nw) {
 	pid_t child;
 	struct ether_addr ea;
 	char *bssid;
-	char *params[13]; /* Maximum number of ifconfig parameters */
+	char *params[13]; /* Maximum number of ifconfig/wpa_cli parameters */
+
+	if (cnf->debug) {
+		fprintf(stderr, "%s: %p\n", __func__, (void*) nw);
+	}
 
 	if (!nw) {
 		return;
 	}
 
-	switch ((child = fork())) {
-		case -1:
-			err(1, "fork");
-		case 0:
-			/* inside child */
-			memcpy(&ea.ether_addr_octet, nw->bssid, sizeof(ea.ether_addr_octet));
-			bssid = ether_ntoa(&ea);
-
-			/* Common parameters for all configuration options */
-			params[0] = "ifconfig";
-			params[1] = cnf->device;
-			params[2] = "nwid";
-			params[3] = nw->nwid;
-			params[4] = "bssid";
-			params[5] = bssid;
-			params[6] = "-chan"; /* Autoselect channel */
-
-			/* three options: open wifi, wpa/wpa2 or 802.1X */
-			switch (nw->type) {
-				case NW_OPEN:
-					params[7] = "-wpa";
-					params[8] = "-wpakey";
-					params[9] = NULL;
-					break;
-				case NW_WPA2:
-				case NW_8021X:
-					params[7] = "wpa";
-					params[8] = "wpaakms";
-					if (nw->type == NW_WPA2) {
-						params[9] = "psk";
-						params[10] = "wpakey";
-						params[11] = nw->wpakey;
-						params[12] = NULL;
-					} else {
-						params[9] = "802.1x";
-						params[10] = NULL;
-					}
-					break;
-				default:
-					errx(1, "BUG: Unknown network type %d!\n", nw->type);
-			}
-
-			if (cnf->verbose) {
-				fprintf(stderr, "configuring wireless network %s\n", nw->nwid);
-			}
-
-			execv("/sbin/ifconfig", params);
-			err(1, "execv");
-		default:
-			waitpid(child, NULL, 0);
+	if (cnf->debug) {
+		fprintf(stderr, "%s: \"%s\"\n", __func__, nw->nwid);
 	}
 
+	memcpy(&ea.ether_addr_octet, nw->bssid, sizeof(ea.ether_addr_octet));
+	bssid = ether_ntoa(&ea);
+
+	/* Common parameters for all configuration options */
+	params[0] = "ifconfig";
+	params[1] = cnf->device;
+	params[2] = "nwid";
+	params[3] = nw->nwid;
+	params[4] = "bssid";
+	params[5] = bssid;
+	params[6] = "-chan"; /* Autoselect channel */
+
+	/* three options: open wifi, wpa/wpa2 or 802.1X */
+	switch (nw->type) {
+		case NW_OPEN:
+			params[7] = "-wpa";
+			params[8] = "-wpakey";
+			params[9] = NULL;
+			break;
+		case NW_WPA2:
+		case NW_8021X:
+			params[7] = "wpa";
+			params[8] = "wpaakms";
+			if (nw->type == NW_WPA2) {
+				params[9] = "psk";
+				params[10] = "wpakey";
+				params[11] = nw->wpakey;
+				params[12] = NULL;
+			} else {
+				params[9] = "802.1x";
+				params[10] = NULL;
+			}
+			break;
+		default:
+			errx(1, "BUG: Unknown network type %d!\n", nw->type);
+	}
+
+	if (cnf->verbose) {
+		fprintf(stderr, "configuring wireless network %s\n", nw->nwid);
+	}
+
+	if (posix_spawn(&child, "/sbin/ifconfig", NULL, NULL, params, NULL) != 0) {
+		err(1, "posix_spawn: ifconfig");
+	}
+	waitpid(child, NULL, 0);
+
 	if (nw->type == NW_8021X) {
-		switch ((child = fork())) {
-			case -1:
-				err(1, "fork");
-			case 0:
-				/* inside child */
-				execl("/usr/local/sbin/wpa_cli", "wpa_cli", "reassoc", NULL);
-				err(1, "execl");
-			default:
-				waitpid(child, NULL, 0);
+		params[0] = "wpa_cli";
+		params[1] = "reassoc";
+		params[2] = NULL;
+
+		if (posix_spawn(&child, "/usr/local/sbin/wpa_cli", NULL, NULL, params, NULL) != 0) {
+			err(1, "posix_spawn: wpa_cli");
 		}
+
+		waitpid(child, NULL, 0);
 	}
 }
 

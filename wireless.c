@@ -61,13 +61,13 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 
 	assert(nrlen > 0);
 
-	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-		err(1, "socket");
-
 	if (posix_spawn(&child, "/sbin/ifconfig", NULL, NULL, params, NULL) != 0) {
 		err(1, "posix_spawn: ifconfig");
 	}
 	waitpid(child, NULL, 0);
+
+	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+		err(1, "socket");
 
 	memset(&ifr, 0x00, sizeof(ifr));
 	(void) strlcpy(ifr.ifr_name, cnf->device, sizeof(ifr.ifr_name));
@@ -96,7 +96,6 @@ void
 configure_network(struct config *cnf, struct network *nw) {
 	pid_t child;
 	struct ether_addr ea;
-	char *bssid;
 	char *params[13]; /* Maximum number of ifconfig/wpa_cli parameters */
 
 	if (!nw) {
@@ -104,7 +103,6 @@ configure_network(struct config *cnf, struct network *nw) {
 	}
 
 	memcpy(&ea.ether_addr_octet, nw->bssid, sizeof(ea.ether_addr_octet));
-	bssid = ether_ntoa(&ea);
 
 	/* Common parameters for all configuration options */
 	params[0] = "ifconfig";
@@ -112,7 +110,7 @@ configure_network(struct config *cnf, struct network *nw) {
 	params[2] = "nwid";
 	params[3] = nw->nwid;
 	params[4] = "bssid";
-	params[5] = bssid;
+	params[5] = ether_ntoa(&ea);
 	params[6] = "-chan"; /* Autoselect channel */
 
 	/* three options: open wifi, wpa/wpa2 or 802.1X */
@@ -203,7 +201,7 @@ write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
 			}
 		}
 
-		/* bssid signal strength enc? nwid */
+		/* bssid signal strength enc? known? nwid */
 		dprintf(fd, "%s\t%d\t%s\t%sknown\t%s\n", ether_ntoa(&ea), nr[i].nr_rssi,
 		        enc? "enc": "open", known? "": "un", nwid);
 	}

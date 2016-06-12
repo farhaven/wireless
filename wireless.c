@@ -84,6 +84,12 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 	if (ioctl(s, SIOCG80211ALLNODES, &na) != 0)
 		err(1, "ioctl");
 
+	if (pledge("stdio proc exec rpath wpath cpath", NULL) == -1) {
+	    perror("pledge");
+	    exit(2);
+	}
+
+
 	if (close(s) != 0)
 		err(1, "close");
 

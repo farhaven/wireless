@@ -89,7 +89,6 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 		exit(2);
 	}
 
-
 	if (close(s) != 0)
 		err(1, "close");
 

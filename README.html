@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>
+table.head, table.foot { width: 100%; }
+td.head-rtitle, td.foot-os { text-align: right; }
+td.head-vol { text-align: center; }
+table.foot td { width: 50%; }
+table.head td { width: 33%; }
+div.spacer { margin: 1em 0; }
+</style>
+<title>
+WIRELESS(8)</title>
+</head>
+<body>
+<div class="mandoc">
+<table class="head">
+<tbody>
+<tr>
+<td class="head-ltitle">
+WIRELESS(8)</td>
+<td class="head-vol">
+System Manager's Manual</td>
+<td class="head-rtitle">
+WIRELESS(8)</td>
+</tr>
+</tbody>
+</table>
+<div class="section">
+<h1 id="NAME">NAME</h1> <b class="name">wireless</b> &#8212; <span class="desc">scan for and configure wireless networks</span></div>
+<div class="section">
+<h1 id="SYNOPSIS">SYNOPSIS</h1><table class="synopsis">
+<col style="width: 8.00ex;"/>
+<col/>
+<tbody>
+<tr>
+<td>
+<b class="name">wireless</b></td>
+<td>
+[<span class="opt"><i class="arg">file</i></span>]</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section">
+<h1 id="DESCRIPTION">DESCRIPTION</h1> <b class="name">wireless</b> scans for and configures wireless networks on OpenBSD. It uses <a class="link-man">ifconfig(8)</a> to do most of the heavy lifting and basically just interprets and applies scan results.</div>
+<div class="section">
+<h1 id="USAGE">USAGE</h1> Just run <b class="name">wireless</b> once to scan for known wireless LANs and configure the earliest network in the configuration file, for example:<div class="spacer">
+</div>
+<pre style="margin-left: 5.00ex;" class="lit display">
+$ wireless 
+... wait a bit for scanning and configuration ... 
+$ dhclient iwn0</pre>
+<div class="spacer">
+</div>
+The result of the scan is also written to the file <i class="file">/tmp/nw-aps</i>. It contains one line for each access point with the following information:<div class="spacer">
+</div>
+<blockquote style="margin-top: 0.00em;margin-bottom: 0.00em;">
+<div class="display">
+BSSID RSSI encrypted? known? SSID</div>
+</blockquote>
+<div class="spacer">
+</div>
+If necessary (see the <i class="link-sec"><a class="link-sec" href="#CONFIGURATION">CONFIGURATION</a></i> section below), <b class="name">wireless</b> will notify <a class="link-man">wpa_supplicant(8)</a> of the newly established connection by calling<div class="spacer">
+</div>
+<blockquote style="margin-top: 0.00em;margin-bottom: 0.00em;">
+<div class="display">
+wpa_cli reassoc</div>
+</blockquote>
+</div>
+<div class="section">
+<h1 id="CONFIGURATION">CONFIGURATION</h1> This is an example configuration file:<div class="spacer">
+</div>
+<pre style="margin-left: 5.00ex;" class="lit display">
+device iwn0 
+verbose 
+ 
+open   freifunk.paderborn.net 
+802.1x eduroam 
+wpa    &quot;home network&quot; thisismypassword</pre>
+<div class="spacer">
+</div>
+There are three kinds of networks, <b class="cmd">open</b>, <b class="cmd">wpa</b> and <b class="cmd">802.1x</b>. All of these get an SSID as their first parameter. <b class="cmd">wpa</b> gets the password as the second parameter. SSIDs and passwords which contain spaces can be enclosed in single or double quotes. Regular string quoting rules apply:<div class="spacer">
+</div>
+<blockquote style="margin-top: 0.00em;margin-bottom: 0.00em;">
+<div class="display">
+wpa Hello\ foo&quot; 'I'm a password!'</div>
+</blockquote>
+<div class="spacer">
+</div>
+You can include files with the <b class="cmd">include</b> statement:<div class="spacer">
+</div>
+<blockquote style="margin-top: 0.00em;margin-bottom: 0.00em;">
+<div class="display">
+include /home/user/.wireless.conf</div>
+</blockquote>
+<div class="spacer">
+</div>
+Macros can be set and used like this:<div class="spacer">
+</div>
+<pre style="margin-left: 5.00ex;" class="lit display">
+mypw = &quot;foobar! 1234#$&quot; 
+wpa nw1 $mypw 
+wpa nw2 $mypw</pre>
+<div class="spacer">
+</div>
+The priority of a network depends on the order of networks in the configuration file. The earlier a network appears, the higher is its priority. If an SSID is visible multiple times (such as in campus networks), the access point with the strongest RSSI is chosen.</div>
+<div class="section">
+<h1 id="FILES">FILES</h1><dl style="margin-top: 0.00em;margin-bottom: 0.00em;" class="list list-tag">
+<dt class="list-tag" style="margin-top: 0.00em;">
+<i class="file">/etc/wireless.conf</i></dt>
+<dd class="list-tag" style="margin-left: 18.00ex;">
+configuration file</dd>
+<dt class="list-tag" style="margin-top: 0.00em;">
+<i class="file">/tmp/nw-aps</i></dt>
+<dd class="list-tag" style="margin-left: 18.00ex;">
+scan results</dd>
+</dl>
+</div>
+<div class="section">
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1> If the keyword <b class="cmd">verbose</b> is given in the configuration file, the name of the network that is being configured will be printed to the standard error stream.<div class="spacer">
+</div>
+The keyword <b class="cmd">debug</b> enables behaviour that helps debugging. Its meaning will change without prior notice, so it should not be used outside of development.</div>
+<div class="section">
+<h1 id="SEE_ALSO">SEE ALSO</h1> <a class="link-man">ifconfig(8)</a> <a class="link-man">wpa_supplicant(8)</a></div>
+<div class="section">
+<h1 id="AUTHORS">AUTHORS</h1><ul style="margin-top: 0.00em;margin-bottom: 0.00em;" class="list list-bul">
+<li class="list-bul" style="margin-top: 1.00em;">
+<span class="author">Gregor Best</span> &lt;<a class="link-mail" href="mailto:gbe@unobtanium.de">gbe@unobtanium.de</a>&gt;</li>
+<li class="list-bul" style="margin-top: 1.00em;">
+jggimi (pledging)</li>
+<li class="list-bul" style="margin-top: 1.00em;">
+spedru (improvements to the <a class="link-man">wpa_supplicant(8)</a> interface)</li>
+</ul>
+</div>
+<table class="foot">
+<tbody>
+<tr>
+<td class="foot-date">
+June 14, 2016</td>
+<td class="foot-os">
+OpenBSD 6.0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</body>
+</html>
+

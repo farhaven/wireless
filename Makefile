@@ -10,6 +10,6 @@ CFLAGS += -g -O0
 all: $(PROG) README
 
 README: $(MAN)
-	mandoc -Tutf8 $(MAN) > $@
+	mandoc -Tutf8 $(MAN) | perl -e 'while (<>) { s/.\x08//g; print }' > $@
 
 .include <bsd.prog.mk>

@@ -1,7 +1,7 @@
 WIRELESS(8)                 System Manager's Manual                WIRELESS(8)
 
 NAME
-     wireless â€“ scan for and configure wireless networks
+     wireless - scan for and configure wireless networks
 
 SYNOPSIS
      wireless [file]
@@ -78,10 +78,10 @@ SEE ALSO
      ifconfig(8) wpa_supplicant(8)
 
 AUTHORS
-     â€â€¢   Gregor Best <gbe@unobtanium.de>
+     o   Gregor Best <gbe@unobtanium.de>
 
-     â€â€¢   jggimi (pledging)
+     o   jggimi (pledging)
 
-     â€â€¢   spedru (improvements to the wpa_supplicant(8) interface)
+     o   spedru (improvements to the wpa_supplicant(8) interface)
 
 OpenBSD 6.0                      June 14, 2016                     OpenBSD 6.0

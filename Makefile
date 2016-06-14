@@ -7,9 +7,9 @@ CFLAGS += -Wall -Werror -pedantic
 CFLAGS += -std=c99
 CFLAGS += -g -O0
 
-all: $(PROG) readme
+all: $(PROG) README
 
-readme: $(MAN)
+README: $(MAN)
 	mandoc -Tutf8 $(MAN) > $@
 
 .include <bsd.prog.mk>

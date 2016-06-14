@@ -1,0 +1,110 @@
+.Dd $Mdocdate$
+.Dt WIRELESS 8
+.Os
+.Sh NAME
+.Nm wireless
+.Nd scan for and configure wireless networks
+.Sh SYNOPSIS
+.Nm
+.Op Ar file
+.Sh DESCRIPTION
+.Nm
+scans for and configures wireless networks on OpenBSD.
+It uses
+.Xr ifconfig 8
+to do most of the heavy lifting and basically just interprets and applies scan results.
+.Sh USAGE
+Just run
+.Nm
+once to scan for known wireless LANs and configure the earliest network in the configuration file, for example:
+.Bd -literal -offset indent
+$ wireless
+\&... wait a bit for scanning and configuration ...
+$ dhclient iwn0
+.Ed
+.Pp
+The result of the scan is also written to the file
+.Pa /tmp/nw-aps .
+It contains one line for each access point with the following information:
+.Pp
+.D1 BSSID RSSI encrypted? known? SSID
+.Pp
+If necessary (see the
+.Sx CONFIGURATION
+section below),
+.Nm
+will notify
+.Xr wpa_supplicant 8
+of the newly established connection by calling
+.Pp
+.D1 wpa_cli reassoc
+.Sh CONFIGURATION
+This is an example configuration file:
+.Bd -literal -offset indent
+device iwn0
+verbose
+
+open   freifunk.paderborn.net
+802.1x eduroam
+wpa    "home network" thisismypassword
+.Ed
+.Pp
+There are three kinds of networks,
+.Ic open ,
+.Ic wpa
+and
+.Ic 802.1x .
+All of these get an SSID as their first parameter.
+.Ic wpa
+gets the password as the second parameter.
+SSIDs and passwords which contain spaces can be enclosed in single or double quotes.
+Regular string quoting rules apply:
+.Pp
+.D1 wpa "Hello\e"foo" 'I'm a password!'
+.Pp
+You can include files with the
+.Ic include
+statement:
+.Pp
+.D1 include "/home/user/.wireless.conf"
+.Pp
+Macros can be set and used like this:
+.Bd -literal -offset indent
+mypw = "foobar! 1234#$"
+wpa nw1 $mypw
+wpa nw2 $mypw
+.Ed
+.Pp
+The priority of a network depends on the order of networks in the configuration file.
+The earlier a network appears, the higher is its priority.
+If an SSID is visible multiple times (such as in campus networks), the access point with the strongest RSSI is chosen.
+.Sh FILES
+.Bl -tag -width "/etc/wireless.conf" -compact
+.It Pa "/etc/wireless.conf"
+configuration file
+.It Pa "/tmp/nw-aps"
+scan results
+.El
+.Sh DIAGNOSTICS
+If the keyword
+.Ic verbose
+is given in the configuration file, the name of the network that is being configured will be printed to the standard error stream.
+.Pp
+The keyword
+.Ic debug
+enables behaviour that helps debugging.
+Its meaning will change without prior notice, so it should not be used outside of development.
+.Sh SEE ALSO
+.Xr ifconfig 8
+.Xr wpa_supplicant 8
+.Sh AUTHORS
+.Bl -bullet
+.It
+.An Gregor Best Aq Mt gbe@unobtanium.de
+.It
+jggimi (pledging)
+.It
+spedru (improvements to the
+.Xr wpa_supplicant 8
+interface)
+.El

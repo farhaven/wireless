@@ -44,7 +44,7 @@ CONFIGURATION
      second parameter.  SSIDs and passwords which contain spaces can be
      enclosed in single or double quotes.  Regular string quoting rules apply:
 
-           wpa Hello\ foo" 'I'm a password!'
+           wpa "Hello\"foo" 'I\'m a password!'
 
      You can include files with the include statement:
 
@@ -84,4 +84,4 @@ AUTHORS
 
      o   spedru (improvements to the wpa_supplicant(8) interface)
 
-OpenBSD 6.0                      June 14, 2016                     OpenBSD 6.0
+OpenBSD 6.0                     August 3, 2016                     OpenBSD 6.0

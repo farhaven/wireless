@@ -19,20 +19,20 @@ USAGE
            ... wait a bit for scanning and configuration ...
            $ dhclient iwn0
 
-     The result of the scan is also written to the file /tmp/nw-aps.  It
-     contains one line for each access point with the following information:
+     The result of the scan can also be written to a file.  The format of the
+     file is described in CONFIGURATION STATEMENTS below.
 
-           BSSID RSSI encrypted? known? SSID
-
-     If necessary (see the CONFIGURATION section below), wireless will notify
-     wpa_supplicant(8) of the newly established connection by calling
+     If necessary (see the CONFIGURATION OVERVIEW section below), wireless
+     will notify wpa_supplicant(8) of the newly established connection by
+     calling
 
            wpa_cli reassoc
 
-CONFIGURATION
+CONFIGURATION OVERVIEW
      This is an example configuration file:
 
            device iwn0
+           dump /var/db/wireless/aps
            verbose
 
            open   freifunk.paderborn.net
@@ -61,9 +61,45 @@ CONFIGURATION
      priority.  If an SSID is visible multiple times (such as in campus
      networks), the access point with the strongest RSSI is chosen.
 
+CONFIGURATION STATEMENTS
+     This section outlines the available configuration statements.
+
+     debug | verbose
+             Enables debugging or verbose mode. See DIAGNOSTICS below for
+             details.
+
+             Both debug and verbose can be specified at the same time.
+
+     device name
+             Use name as the device to configure.
+
+     dump path
+             Dump a list of configured networks to path.  It contains one line
+             for each access point with the following information:
+
+                   BSSID RSSI encrypted? known? SSID..
+
+             There is no default path, which means that if no dump statement
+             is given, the list of networks is not written out.
+
+     include path
+             Includes the file path at the point where the include statement
+             appears in the file.
+
+     open nwid
+             Defines an unencrypted network with the ESSID nwid.
+
+     wpa nwid password
+             Defines a WPA2 network with the ESSID nwid and the password
+             password.
+
+     802.1x nwid
+             Defines a WPA2 network that uses IEEE 802.1x as the key
+             management scheme.  This requires using wpa_supplicant(8) to
+             handle the actual key management.
+
 FILES
      /etc/wireless.conf  configuration file
-     /tmp/nw-aps         scan results
 
 DIAGNOSTICS
      If the keyword verbose is given in the configuration file, the name of

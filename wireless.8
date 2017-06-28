@@ -36,14 +36,13 @@ $ wireless
 $ dhclient iwn0
 .Ed
 .Pp
-The result of the scan is also written to the file
-.Pa /tmp/nw-aps .
-It contains one line for each access point with the following information:
-.Pp
-.D1 BSSID RSSI encrypted? known? SSID
+The result of the scan can also be written to a file.
+The format of the file is described in
+.Sx "CONFIGURATION STATEMENTS"
+below.
 .Pp
 If necessary (see the
-.Sx CONFIGURATION
+.Sx "CONFIGURATION OVERVIEW"
 section below),
 .Nm
 will notify
@@ -51,10 +50,11 @@ will notify
 of the newly established connection by calling
 .Pp
 .D1 wpa_cli reassoc
-.Sh CONFIGURATION
+.Sh "CONFIGURATION OVERVIEW
 This is an example configuration file:
 .Bd -literal -offset indent
 device iwn0
+dump /var/db/wireless/aps
 verbose
 
 open   freifunk.paderborn.net
@@ -91,12 +91,57 @@ wpa nw2 $mypw
 The priority of a network depends on the order of networks in the configuration file.
 The earlier a network appears, the higher is its priority.
 If an SSID is visible multiple times (such as in campus networks), the access point with the strongest RSSI is chosen.
+.Sh CONFIGURATION STATEMENTS
+This section outlines the available configuration statements.
+.Bl -tag -width Ds
+.It Ic debug | Ic verbose
+Enables debugging or verbose mode. See
+.Sx DIAGNOSTICS
+below for details.
+.Pp
+Both
+.Ic debug
+and
+.Ic verbose
+can be specified at the same time.
+.It Ic device Ar name
+Use
+.Ar name
+as the device to configure.
+.It Ic dump Pa path
+Dump a list of configured networks to
+.Pa path .
+It contains one line for each access point with the following information:
+.Pp
+.D1 BSSID RSSI encrypted? known? SSID..
+.Pp
+There is no default path, which means that if no
+.Ic dump
+statement is given, the list of networks is not written out.
+.It Ic include Pa path
+Includes the file
+.Pa path
+at the point where the
+.Ic include
+statement appears in the file.
+.It Ic open Ar nwid
+Defines an unencrypted network with the ESSID
+.Ar nwid .
+.It Ic wpa Ar nwid Ar password
+Defines a WPA2 network with the ESSID
+.Ar nwid
+and the password
+.Ar password .
+.It Ic 802.1x Ar nwid
+Defines a WPA2 network that uses IEEE 802.1x as the key management scheme.
+This requires using
+.Xr wpa_supplicant 8
+to handle the actual key management.
+.El
 .Sh FILES
 .Bl -tag -width "/etc/wireless.conf" -compact
 .It Pa "/etc/wireless.conf"
 configuration file
-.It Pa "/tmp/nw-aps"
-scan results
 .El
 .Sh DIAGNOSTICS
 If the keyword

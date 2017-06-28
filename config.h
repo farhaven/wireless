@@ -35,6 +35,7 @@ struct network {
 struct config {
 	TAILQ_HEAD(, network) networks;
 	char *device;
+	char *dump;
 	int debug;
 	int verbose;
 };

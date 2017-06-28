@@ -66,11 +66,11 @@ struct network	*new_network(enum network_type, char *);
 static struct config	*conf;
 %}
 
-%token	T_DEVICE
-%token	T_VERBOSE T_DEBUG
-%token	T_NET_OPEN T_NET_WPA T_NET_8021X
-%token	T_NETWORK T_EQ
+%token	T_DEVICE T_DUMP
+%token	T_EQ
 %token	T_ERROR T_INCLUDE
+%token	T_NET_OPEN T_NET_WPA T_NET_8021X
+%token	T_VERBOSE T_DEBUG
 %token	<v.string>	T_STRING
 %%
 
@@ -82,6 +82,7 @@ grammar		: /* empty */
 		| grammar debug '\n'
 		| grammar network '\n'
 		| grammar device '\n'
+		| grammar dump '\n'
 		| grammar error '\n'	{ file->errors++; }
 		;
 
@@ -117,6 +118,11 @@ device		: T_DEVICE T_STRING {
 				YYERROR;
 			}
 			conf->device = $2;
+		}
+		;
+
+dump		: T_DUMP T_STRING {
+			conf->dump = $2;
 		}
 		;
 
@@ -184,8 +190,8 @@ lookup(char *s)
 		{ "=",		T_EQ },
 		{ "debug",	T_DEBUG },
 		{ "device",	T_DEVICE },
+		{ "dump",	T_DUMP },
 		{ "include",	T_INCLUDE },
-		{ "network",	T_NETWORK },
 		{ "open",	T_NET_OPEN },
 		{ "verbose",	T_VERBOSE },
 		{ "wpa",	T_NET_WPA },

@@ -13,8 +13,10 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
  * THIS SOFTWARE.
 */
+
 #include <assert.h>
 #include <err.h>
+#include <libgen.h>
 #include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -182,12 +184,26 @@ configure_network(struct config *cnf, struct network *nw) {
 
 void
 write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
-	int i, fd;
+	int i, fd, ret;
 	char *tmpname;
 
-	tmpname = strdup("/tmp/temp.XXXXXXXXXX");
-	if (!tmpname) {
+	if (!cnf->dump) {
+		if (cnf->debug)
+			fprintf(stderr, "Won't dump network list, dump not configured\n");
+		return;
+	}
+
+	if (cnf->debug) {
+		fprintf(stderr, "Dumping scanned networks to %s now\n", cnf->dump);
+	}
+
+	ret = asprintf(&tmpname, "%s/%s.XXXXXXXXXX", dirname(cnf->dump), basename(cnf->dump));
+	if ((!tmpname) || (ret == -1)) {
 		err(1, NULL);
+	}
+
+	if (cnf->debug) {
+		fprintf(stderr, "tmpname=%s\n", tmpname);
 	}
 
 	/* Write out /tmp/nw-aps */
@@ -228,7 +244,7 @@ write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
 
 	close(fd);
 
-	if (rename(tmpname, "/tmp/nw-aps") == -1)
+	if (rename(tmpname, cnf->dump) == -1)
 		err(1, "rename");
 
 	free(tmpname);

@@ -1,6 +1,6 @@
 /* Based on OpenBGPD's parse.y */
 /*
- * Copyright (c) 2016 Gregor Best <gbe@unobtanium.de>
+ * Copyright (c) 2016, 2017 Gregor Best <gbe@unobtanium.de>
  * Copyright (c) 2002, 2003, 2004 Henning Brauer <henning@openbsd.org>
  * Copyright (c) 2001 Markus Friedl.  All rights reserved.
  * Copyright (c) 2001 Daniel Hartmeier.  All rights reserved.

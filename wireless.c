@@ -247,6 +247,8 @@ write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
 		err(1, "mkstemp");
 	}
 
+	dprintf(fd, "BSSID% 12c\tRSSI\tENC\tKNOWN\tNWID\n", ' ');
+
 	for (i = 0; i < numnodes; i++) {
 		char nwid[IEEE80211_NWID_LEN + 1];
 		struct ether_addr ea;

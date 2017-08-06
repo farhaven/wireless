@@ -74,14 +74,33 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 	struct ifreq ifr;
 	int s;
 	pid_t child;
-	char *params[4] = { "ifconfig", cnf->device, "up", NULL };
+	char *params[4] = { "ifconfig", cnf->device, "down", NULL };
 
 	assert(nrlen > 0);
+
+	if (cnf->debug) {
+		fprintf(stderr, "doing a 'down'/'up'-dance on device %s\n", cnf->device);
+	}
 
 	if (posix_spawn(&child, "/sbin/ifconfig", NULL, NULL, params, NULL) != 0) {
 		err(1, "posix_spawn: ifconfig");
 	}
 	waitpid(child, NULL, 0);
+
+	if (cnf->debug) {
+		fprintf(stderr, "device %s down\n", cnf->device);
+	}
+
+	params[2] = "up";
+
+	if (posix_spawn(&child, "/sbin/ifconfig", NULL, NULL, params, NULL) != 0) {
+		err(1, "posix_spawn: ifconfig");
+	}
+	waitpid(child, NULL, 0);
+
+	if (cnf->debug) {
+		fprintf(stderr, "device %s up\n", cnf->device);
+	}
 
 	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 		err(1, "socket");
@@ -89,8 +108,16 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 	memset(&ifr, 0x00, sizeof(ifr));
 	(void) strlcpy(ifr.ifr_name, cnf->device, sizeof(ifr.ifr_name));
 
+	if (cnf->debug) {
+		fprintf(stderr, "running SIOCS80211SCAN ioctl\n");
+	}
+
 	if (ioctl(s, SIOCS80211SCAN, &ifr) != 0)
 		err(1, "ioctl");
+
+	if (cnf->debug) {
+		fprintf(stderr, "SIOCS80211SCAN done\n");
+	}
 
 	memset(&na, 0x00, sizeof(na));
 	memset(nr, 0x00, sizeof(nr) * nrlen);
@@ -98,8 +125,16 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 	na.na_size = nrlen * sizeof(*nr);
 	(void) strlcpy(na.na_ifname, cnf->device, sizeof(na.na_ifname));
 
+	if (cnf->debug) {
+		fprintf(stderr, "running SIOCG80211ALLNODES ioctl\n");
+	}
+
 	if (ioctl(s, SIOCG80211ALLNODES, &na) != 0)
 		err(1, "ioctl");
+
+	if (cnf->debug) {
+		fprintf(stderr, "SIOCG80211ALLNODES done\n");
+	}
 
 	if (pledge("stdio proc exec rpath wpath cpath", NULL) == -1) {
 		perror("pledge");

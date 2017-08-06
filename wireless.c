@@ -321,19 +321,6 @@ main(int argc, char **argv) {
 		errx(1, "No device specified");
 	}
 
-	if (cnf->debug) {
-		struct network *n;
-
-		fprintf(stderr, "Configured networks:\n");
-
-		TAILQ_FOREACH(n, &cnf->networks, networks) {
-			fprintf(stderr, "\"%s\"", n->nwid);
-			if (n->type == NW_WPA2)
-				fprintf(stderr, " \"%s\"", n->wpakey);
-			fprintf(stderr, "\n");
-		}
-	}
-
 	memset(nr, 0x00, ARRAY_SIZE(nr));
 	numnodes = scan(cnf, nr, ARRAY_SIZE(nr));
 

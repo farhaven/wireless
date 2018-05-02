@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, 2017, Gregor Best <gbe@unobtanium.de>
+ * Copyright (c) 2015, 2016, 2017, 2018 Gregor Best <gbe@unobtanium.de>
  * Parts Copyright (c) 2013, 2014, OpenBSD project
  *
  * Permission to use, copy, modify, and/or distribute this software for any purpose

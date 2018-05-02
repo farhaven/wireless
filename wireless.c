@@ -40,6 +40,10 @@
 #define ARRAY_SIZE(x) ((sizeof(x)) / sizeof(*x))
 #define SCANSZ 512
 
+/* Selects the first network in `cnf->networks` that is in `nr` by ESSID and
+ * annotates it with the bssid of the scanned AP. The selected network is then
+ * returned
+ */
 struct network *
 select_network(struct config *cnf, struct ieee80211_nodereq *nr, int numr) {
 	int i;
@@ -68,6 +72,12 @@ rssicmp(const void *a, const void *b) {
 	return r2 < r1 ? -1 : r2 > r1;
 }
 
+#define DPRINTF(...) do { \
+	if (cnf->debug) { \
+		fprintf(stderr, __VA_ARGS__); \
+	} \
+} while (0)
+
 int
 scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 	struct ieee80211_nodereq_all na;
@@ -76,9 +86,7 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 
 	assert(nrlen > 0);
 
-	if (cnf->debug) {
-		fprintf(stderr, "device %s up\n", cnf->device);
-	}
+	DPRINTF("device %s up\n", cnf->device);
 
 	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 		err(1, "socket");
@@ -86,16 +94,12 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 	memset(&ifr, 0x00, sizeof(ifr));
 	(void) strlcpy(ifr.ifr_name, cnf->device, sizeof(ifr.ifr_name));
 
-	if (cnf->debug) {
-		fprintf(stderr, "running SIOCS80211SCAN ioctl\n");
-	}
+	DPRINTF("running SIOCS80211SCAN ioctl\n");
 
 	if (ioctl(s, SIOCS80211SCAN, &ifr) != 0)
 		err(1, "ioctl");
 
-	if (cnf->debug) {
-		fprintf(stderr, "SIOCS80211SCAN done\n");
-	}
+	DPRINTF("SIOCS80211SCAN done\n");
 
 	memset(&na, 0x00, sizeof(na));
 	memset(nr, 0x00, sizeof(nr) * nrlen);
@@ -103,16 +107,12 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 	na.na_size = nrlen * sizeof(*nr);
 	(void) strlcpy(na.na_ifname, cnf->device, sizeof(na.na_ifname));
 
-	if (cnf->debug) {
-		fprintf(stderr, "running SIOCG80211ALLNODES ioctl\n");
-	}
+	DPRINTF("running SIOCG80211ALLNODES ioctl\n");
 
 	if (ioctl(s, SIOCG80211ALLNODES, &na) != 0)
 		err(1, "ioctl");
 
-	if (cnf->debug) {
-		fprintf(stderr, "SIOCG80211ALLNODES done\n");
-	}
+	DPRINTF("SIOCG80211ALLNODES done\n");
 
 	if (pledge("stdio proc exec rpath wpath cpath", NULL) == -1) {
 		perror("pledge");
@@ -201,23 +201,18 @@ write_nwlist(struct config *cnf, struct ieee80211_nodereq *nr, int numnodes) {
 	char *tmpname;
 
 	if (!cnf->dump) {
-		if (cnf->debug)
-			fprintf(stderr, "Won't dump network list, dump not configured\n");
+		DPRINTF("Won't dump network list, dump not configured\n");
 		return;
 	}
 
-	if (cnf->debug) {
-		fprintf(stderr, "Dumping scanned networks to %s now\n", cnf->dump);
-	}
+	DPRINTF("Dumping scanned networks to %s now\n", cnf->dump);
 
 	ret = asprintf(&tmpname, "%s/%s.XXXXXXXXXX", dirname(cnf->dump), basename(cnf->dump));
 	if ((!tmpname) || (ret == -1)) {
 		err(1, NULL);
 	}
 
-	if (cnf->debug) {
-		fprintf(stderr, "tmpname=%s\n", tmpname);
-	}
+	DPRINTF("tmpname=%s\n", tmpname);
 
 	/* Write out /tmp/nw-aps */
 	fd = mkstemp(tmpname);

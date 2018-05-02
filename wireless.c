@@ -73,30 +73,8 @@ scan(struct config *cnf, struct ieee80211_nodereq *nr, int nrlen) {
 	struct ieee80211_nodereq_all na;
 	struct ifreq ifr;
 	int s;
-	pid_t child;
-	char *params[4] = { "ifconfig", cnf->device, "down", NULL };
 
 	assert(nrlen > 0);
-
-	if (cnf->debug) {
-		fprintf(stderr, "doing a 'down'/'up'-dance on device %s\n", cnf->device);
-	}
-
-	if (posix_spawn(&child, "/sbin/ifconfig", NULL, NULL, params, NULL) != 0) {
-		err(1, "posix_spawn: ifconfig");
-	}
-	waitpid(child, NULL, 0);
-
-	if (cnf->debug) {
-		fprintf(stderr, "device %s down\n", cnf->device);
-	}
-
-	params[2] = "up";
-
-	if (posix_spawn(&child, "/sbin/ifconfig", NULL, NULL, params, NULL) != 0) {
-		err(1, "posix_spawn: ifconfig");
-	}
-	waitpid(child, NULL, 0);
 
 	if (cnf->debug) {
 		fprintf(stderr, "device %s up\n", cnf->device);

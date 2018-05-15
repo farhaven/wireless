@@ -69,7 +69,7 @@ and
 .Ic 802.1x .
 All of these get an SSID as their first parameter.
 .Ic wpa
-gets the password as the second parameter.
+gets the password or hex key as the second parameter.
 SSIDs and passwords which contain spaces can be enclosed in single or double quotes.
 Regular string quoting rules apply:
 .Pp
@@ -84,8 +84,9 @@ statement:
 Macros can be set and used like this:
 .Bd -literal -offset indent
 mypw = "foobar! 1234#$"
+hexkey = 0x092876e79594ae7beda40dd150d17fa215e51f22cb990f9ec640a267c96fbedf
 wpa nw1 $mypw
-wpa nw2 $mypw
+wpa nw2 $hexkey
 .Ed
 .Pp
 The priority of a network depends on the order of networks in the configuration file.
@@ -125,13 +126,9 @@ at the point where the
 .Ic include
 statement appears in the file.
 .It Ic open Ar nwid
-Defines an unencrypted network with the ESSID
-.Ar nwid .
-.It Ic wpa Ar nwid Ar password
-Defines a WPA2 network with the ESSID
-.Ar nwid
-and the password
-.Ar password .
+Defines an unencrypted network.
+.It Ic wpa Ar nwid Ar password|hexkey
+Defines a WPA2 network.
 .It Ic 802.1x Ar nwid
 Defines a WPA2 network that uses IEEE 802.1x as the key management scheme.
 This requires using
@@ -153,7 +150,8 @@ The keyword
 enables behaviour that helps debugging.
 Its meaning will change without prior notice, so it should not be used outside of development.
 .Sh SEE ALSO
-.Xr ifconfig 8
+.Xr ifconfig 8 ,
+.Xr wpa_passphrase 8 ,
 .Xr wpa_supplicant 8
 .Sh AUTHORS
 .Bl -bullet

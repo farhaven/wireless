@@ -40,8 +40,8 @@ CONFIGURATION OVERVIEW
            wpa    "home network" thisismypassword
 
      There are three kinds of networks, open, wpa and 802.1x.  All of these
-     get an SSID as their first parameter.  wpa gets the password as the
-     second parameter.  SSIDs and passwords which contain spaces can be
+     get an SSID as their first parameter.  wpa gets the password or hex key
+     as the second parameter.  SSIDs and passwords which contain spaces can be
      enclosed in single or double quotes.  Regular string quoting rules apply:
 
            wpa "Hello\"foo" 'I\'m a password!'
@@ -53,8 +53,9 @@ CONFIGURATION OVERVIEW
      Macros can be set and used like this:
 
            mypw = "foobar! 1234#$"
+           hexkey = 0x092876e79594ae7beda40dd150d17fa215e51f22cb990f9ec640a267c96fbedf
            wpa nw1 $mypw
-           wpa nw2 $mypw
+           wpa nw2 $hexkey
 
      The priority of a network depends on the order of networks in the
      configuration file.  The earlier a network appears, the higher is its
@@ -65,7 +66,7 @@ CONFIGURATION STATEMENTS
      This section outlines the available configuration statements.
 
      debug | verbose
-             Enables debugging or verbose mode. See DIAGNOSTICS below for
+             Enables debugging or verbose mode.  See DIAGNOSTICS below for
              details.
 
              Both debug and verbose can be specified at the same time.
@@ -87,11 +88,10 @@ CONFIGURATION STATEMENTS
              appears in the file.
 
      open nwid
-             Defines an unencrypted network with the ESSID nwid.
+             Defines an unencrypted network.
 
-     wpa nwid password
-             Defines a WPA2 network with the ESSID nwid and the password
-             password.
+     wpa nwid password|hexkey
+             Defines a WPA2 network.
 
      802.1x nwid
              Defines a WPA2 network that uses IEEE 802.1x as the key
@@ -111,7 +111,7 @@ DIAGNOSTICS
      development.
 
 SEE ALSO
-     ifconfig(8) wpa_supplicant(8)
+     ifconfig(8), wpa_passphrase(8), wpa_supplicant(8)
 
 AUTHORS
      o   Gregor Best <gbe@unobtanium.de>
@@ -120,4 +120,6 @@ AUTHORS
 
      o   spedru (improvements to the wpa_supplicant(8) interface)
 
-OpenBSD 6.1                      June 28, 2017                     OpenBSD 6.1
+     o   Klemens Nanni Aq Mt kn@openbsd.org
+
+OpenBSD 6.3                      May 21, 2018                      OpenBSD 6.3

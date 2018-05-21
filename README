@@ -120,6 +120,6 @@ AUTHORS
 
      o   spedru (improvements to the wpa_supplicant(8) interface)
 
-     o   Klemens Nanni Aq Mt kn@openbsd.org
+     o   Klemens Nanni <kn@openbsd.org> (improvements to the manpage)
 
 OpenBSD 6.3                      May 21, 2018                      OpenBSD 6.3

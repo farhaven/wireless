@@ -26,6 +26,15 @@ scans for and configures wireless networks on OpenBSD.
 It uses
 .Xr ifconfig 8
 to do most of the heavy lifting and basically just interprets and applies scan results.
+.Pp
+.Nm
+is deprecated since
+.Ox 6.4 .
+Use the
+.Fl join
+option of
+.Xr ifconfig 8
+instead to configure auto-joined wireless networks.
 .Sh USAGE
 Just run
 .Nm

@@ -11,6 +11,9 @@ DESCRIPTION
      ifconfig(8) to do most of the heavy lifting and basically just interprets
      and applies scan results.
 
+     wireless is deprecated since OpenBSD 6.4.  Use the -join option of
+     ifconfig(8) instead to configure auto-joined wireless networks.
+
 USAGE
      Just run wireless once to scan for known wireless LANs and configure the
      earliest network in the configuration file, for example:
@@ -122,4 +125,4 @@ AUTHORS
 
      o   Klemens Nanni <kn@openbsd.org> (improvements to the manpage)
 
-OpenBSD 6.3                      May 21, 2018                      OpenBSD 6.3
+OpenBSD 6.4                    October 31, 2018                    OpenBSD 6.4
